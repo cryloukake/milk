@@ -1,0 +1,681 @@
+{
+  "address": "75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3",
+  "metadata": {
+    "name": "milk",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "MILK - Private SOL transfers on Solana using ZK proofs"
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize the protocol: create PoolConfig PDA and the SOL vault.",
+        "The Merkle tree must be pre-allocated and is initialized via CPI."
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "SOL vault PDA — holds all deposited SOL."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merkle_tree",
+          "docs": [
+            "The concurrent Merkle tree (must be pre-allocated)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "compression_program",
+          "address": "cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"
+        },
+        {
+          "name": "log_wrapper",
+          "address": "noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "merkle_tree_depth",
+          "type": "u32"
+        },
+        {
+          "name": "max_buffer_size",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "shield",
+      "docs": [
+        "Shield (deposit): Transfer arbitrary SOL into the vault and append a",
+        "commitment to the Merkle tree.",
+        "",
+        "No ZK proof needed — the amount is public (it's a SOL transfer).",
+        "The client computes: commitment = Poseidon(amount, nullifier, secret)",
+        "and passes the 32-byte commitment hash."
+      ],
+      "discriminator": [
+        220,
+        198,
+        253,
+        246,
+        231,
+        84,
+        147,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "depositor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "merkle_tree",
+          "writable": true
+        },
+        {
+          "name": "compression_program",
+          "address": "cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"
+        },
+        {
+          "name": "log_wrapper",
+          "address": "noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "transfer",
+      "docs": [
+        "Transfer (private send): Spend one input commitment and create two",
+        "new output commitments (recipient balance + sender change).",
+        "",
+        "NO SOL moves — this only updates the Merkle tree.",
+        "The ZK proof verifies:",
+        "1. Input commitment exists in the tree (Merkle inclusion)",
+        "2. Nullifier is correctly derived",
+        "3. Output commitments are correctly formed",
+        "4. Balance conservation: inAmount = outAmount1 + outAmount2",
+        "",
+        "Public inputs: root, nullifierHash, outCommitment1, outCommitment2"
+      ],
+      "discriminator": [
+        163,
+        52,
+        200,
+        231,
+        140,
+        3,
+        69,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "nullifier",
+          "docs": [
+            "Nullifier PDA — init on first use; double-spend = already-exists error."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  110,
+                  117,
+                  108,
+                  108,
+                  105,
+                  102,
+                  105,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "nullifier_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merkle_tree",
+          "writable": true
+        },
+        {
+          "name": "compression_program",
+          "address": "cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"
+        },
+        {
+          "name": "log_wrapper",
+          "address": "noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proof",
+          "type": {
+            "defined": {
+              "name": "Proof"
+            }
+          }
+        },
+        {
+          "name": "root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "nullifier_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "out_commitment_1",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "out_commitment_2",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "unshield",
+      "docs": [
+        "Unshield (withdraw): Spend a commitment and withdraw SOL to a recipient.",
+        "",
+        "The ZK proof verifies:",
+        "1. Input commitment exists in the tree (Merkle inclusion)",
+        "2. Nullifier is correctly derived",
+        "3. The public withdrawal amount matches the committed amount",
+        "4. Recipient is bound to prevent front-running",
+        "",
+        "Public inputs: root, nullifierHash, amount, recipient"
+      ],
+      "discriminator": [
+        21,
+        228,
+        55,
+        24,
+        194,
+        10,
+        21,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "relayer_or_user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "nullifier",
+          "docs": [
+            "Nullifier PDA — init on first use; double-spend = already-exists error."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  110,
+                  117,
+                  108,
+                  108,
+                  105,
+                  102,
+                  105,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "nullifier_hash"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "proof",
+          "type": {
+            "defined": {
+              "name": "Proof"
+            }
+          }
+        },
+        {
+          "name": "root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "nullifier_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "NullifierAccount",
+      "discriminator": [
+        250,
+        31,
+        238,
+        177,
+        213,
+        98,
+        48,
+        172
+      ]
+    },
+    {
+      "name": "PoolConfig",
+      "discriminator": [
+        26,
+        108,
+        14,
+        123,
+        116,
+        230,
+        129,
+        43
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidProof",
+      "msg": "Invalid Groth16 proof"
+    },
+    {
+      "code": 6001,
+      "name": "NullifierAlreadySpent",
+      "msg": "Nullifier has already been spent"
+    },
+    {
+      "code": 6002,
+      "name": "RootMismatch",
+      "msg": "Merkle tree root mismatch"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6004,
+      "name": "InsufficientVaultBalance",
+      "msg": "Insufficient vault balance for withdrawal"
+    },
+    {
+      "code": 6005,
+      "name": "ProofVerificationFailed",
+      "msg": "Proof verification syscall failed"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidPublicInputs",
+      "msg": "Invalid public inputs length"
+    }
+  ],
+  "types": [
+    {
+      "name": "NullifierAccount",
+      "docs": [
+        "PDA account that marks a nullifier as spent. Existence = spent."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nullifier",
+            "docs": [
+              "The nullifier hash (32 bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolConfig",
+      "docs": [
+        "Global protocol configuration stored as a PDA."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Authority that can manage the protocol (e.g., pause, upgrade)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for the PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "docs": [
+              "Bump seed for the SOL vault PDA."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "deposit_count",
+            "docs": [
+              "Total number of shield (deposit) operations."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "transfer_count",
+            "docs": [
+              "Total number of private transfers."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "withdrawal_count",
+            "docs": [
+              "Total number of unshield (withdrawal) operations."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Proof",
+      "docs": [
+        "Groth16 proof: three curve points."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "a",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "b",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
+          },
+          {
+            "name": "c",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

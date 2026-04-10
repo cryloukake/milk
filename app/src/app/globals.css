@@ -1,0 +1,321 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #111111;
+  --bg-panel: #1a1a1a;
+  --gold: #f5c842;
+  --gold-dark: #d4a012;
+  --gold-glow: rgba(245, 200, 66, 0.25);
+  --cream: #fff5e0;
+  --pink: #ff6b9d;
+  --purple: #b47eff;
+  --sky: #47d4ff;
+  --text: #f0ece4;
+  --text-dim: #888;
+  --border: #333;
+  --shadow: #000;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Fredoka', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ---- Prevent horizontal overflow from glows ---- */
+html, body {
+  overflow-x: hidden;
+}
+
+/* ---- Grid overlay ---- */
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245, 200, 66, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 200, 66, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ---- Radial glows ---- */
+.glow-gold {
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(800px, 100vw);
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(245, 200, 66, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-sky {
+  position: fixed;
+  top: 30%;
+  right: -100px;
+  width: min(600px, 80vw);
+  height: 600px;
+  background: radial-gradient(circle, rgba(71, 212, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-purple {
+  position: fixed;
+  bottom: -100px;
+  left: -100px;
+  width: min(500px, 80vw);
+  height: 500px;
+  background: radial-gradient(circle, rgba(180, 126, 255, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- Arcade panel ---- */
+.arcade-panel {
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0px var(--shadow), 0 0 40px rgba(245, 200, 66, 0.05);
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .arcade-panel {
+    box-shadow: 8px 8px 0px var(--shadow), 0 0 40px rgba(245, 200, 66, 0.05);
+  }
+}
+
+/* Glossy highlight */
+.arcade-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+  pointer-events: none;
+  border-radius: 14px 14px 0 0;
+}
+
+/* ---- Arcade heading ---- */
+.font-arcade {
+  font-family: 'Bungee', cursive;
+}
+
+.font-body {
+  font-family: 'Fredoka', sans-serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ---- Arcade input ---- */
+.arcade-input {
+  background: #111;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--gold);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  width: 100%;
+  box-shadow: inset 3px 3px 0px rgba(0,0,0,0.3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.arcade-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 3px 3px 0px rgba(0,0,0,0.3), 0 0 16px var(--gold-glow);
+}
+.arcade-input::placeholder {
+  color: #555;
+  font-family: 'Fredoka', sans-serif;
+}
+.arcade-input-lg {
+  font-size: 18px;
+  padding: 14px 16px;
+  font-weight: 600;
+}
+@media (min-width: 640px) {
+  .arcade-input-lg {
+    font-size: 22px;
+  }
+}
+
+/* ---- Arcade button ---- */
+.btn-arcade {
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: #000;
+  font-family: 'Bungee', cursive;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  border: 2px solid var(--gold-dark);
+  border-radius: 10px;
+  padding: 14px 0;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000;
+  transition: all 0.1s ease;
+  position: relative;
+}
+.btn-arcade:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000;
+}
+.btn-arcade:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000;
+}
+.btn-arcade:disabled {
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+  color: #555;
+  border-color: #333;
+  box-shadow: 4px 4px 0px #000;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Chip buttons ---- */
+.chip {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: #111;
+  color: var(--text-dim);
+  box-shadow: 3px 3px 0px #000;
+  transition: all 0.1s ease;
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--gold-dark);
+  color: var(--gold);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000;
+}
+.chip-active {
+  background: var(--gold) !important;
+  color: #000 !important;
+  border-color: var(--gold-dark) !important;
+  box-shadow: 3px 3px 0px #000 !important;
+}
+
+/* ---- Status cards ---- */
+.card-success {
+  background: rgba(245, 200, 66, 0.08);
+  border: 2px solid rgba(245, 200, 66, 0.25);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+}
+
+.card-error {
+  background: rgba(255, 107, 157, 0.08);
+  border: 2px solid rgba(255, 107, 157, 0.25);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+}
+
+/* ---- Note textarea ---- */
+.note-display {
+  background: #0a0a0a;
+  border: 2px solid var(--gold-dark);
+  border-radius: 10px;
+  padding: 12px 16px;
+  padding-right: 70px;
+  color: var(--gold);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  width: 100%;
+  box-shadow: inset 3px 3px 0px rgba(0,0,0,0.4);
+  resize: none;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* ---- Copy button ---- */
+.btn-copy {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  background: #222;
+  color: var(--gold);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  box-shadow: 2px 2px 0px #000;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+.btn-copy:hover {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold-dark);
+}
+
+/* ---- Bounce animation ---- */
+@keyframes bounce-in {
+  0% { transform: scale(0.95); opacity: 0; }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.3s ease-out;
+}
+
+/* ---- Tab indicator ---- */
+.tab-active {
+  color: var(--gold) !important;
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+.tab-bar {
+  height: 3px;
+  background: var(--gold);
+  border-radius: 3px;
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* ---- Wallet adapter overrides ---- */
+.wallet-adapter-modal-wrapper {
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+.wallet-adapter-modal-container {
+  background: #1a1a1a !important;
+  border: 2px solid #333 !important;
+  border-radius: 16px !important;
+  box-shadow: 8px 8px 0px #000 !important;
+}
+.wallet-adapter-button {
+  background: #222 !important;
+  color: var(--gold) !important;
+  border: 2px solid #333 !important;
+  border-radius: 8px !important;
+  font-family: 'Fredoka', sans-serif !important;
+  box-shadow: 3px 3px 0px #000 !important;
+}
+.wallet-adapter-button:hover {
+  background: #2a2a2a !important;
+  border-color: var(--gold-dark) !important;
+}
+.wallet-adapter-modal-list .wallet-adapter-button {
+  color: var(--cream) !important;
+}

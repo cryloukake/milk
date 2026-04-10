@@ -1,0 +1,52 @@
+# Build artifacts
+target/
+.anchor/
+.next/
+node_modules/
+test-ledger/
+dist/
+
+# Sensitive — keypairs, secrets
+.config/deploy-keypair.json
+.config/*.json
+*-keypair.json
+*.pem
+.env
+.env.*
+
+# Claude settings
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Ceremony intermediate files (large, reproducible)
+circuits/setup/*.ptau
+circuits/setup/milk_*.zkey
+circuits/setup/transfer/*_0000.zkey
+circuits/setup/transfer/*_0001.zkey
+circuits/setup/unshield/*_0000.zkey
+circuits/setup/unshield/*_0001.zkey
+
+# Test artifacts (reproducible)
+circuits/setup/test_*
+circuits/setup/transfer/test_*
+circuits/setup/unshield/test_*
+circuits/setup/verification_key.json
+circuits/setup/vk_const.rs
+circuits/build/milk*
+circuits/milk_v1_deprecated.circom
+
+# Screenshots
+screenshot/
+
+# OS / editor
+.DS_Store
+**/*.rs.bk
+.yarn
+/tmp/
+*.log
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

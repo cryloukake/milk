@@ -1,0 +1,11 @@
+{
+  "name": "milk-circuits",
+  "version": "0.1.0",
+  "description": "MILK ZK circuits — Poseidon commitment + Merkle inclusion proof",
+  "private": true,
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.5"
+  }
+}
