@@ -1,5 +1,6 @@
 import {
   MERKLE_TREE_DEPTH,
+  INDEXER_URL,
   TRANSFER_WASM_URL,
   TRANSFER_ZKEY_URL,
   UNSHIELD_WASM_URL,
@@ -96,6 +97,56 @@ let treeLeaves: bigint[] = [];
 let treeRoots: bigint[] = [];
 let treeInitialized = false;
 
+/** Fetch tree state from the indexer API. Returns null on failure. */
+async function fetchTreeFromIndexer(): Promise<TreeState | null> {
+  try {
+    const res = await fetch(`${INDEXER_URL}/tree`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.leaves || data.leaves.length === 0) return null;
+
+    // Rebuild filledSubtrees by replaying insertions
+    // (the indexer doesn't serve filledSubtrees, so we recompute)
+    const poseidon = await getPoseidon();
+    const F = poseidon.F;
+    const zeros = treeZeros || (() => {
+      const z = [BigInt(0)];
+      for (let i = 0; i < MERKLE_TREE_DEPTH; i++) z.push(F.toObject(poseidon([z[i], z[i]])));
+      return z;
+    })();
+
+    const fs = zeros.slice(0, MERKLE_TREE_DEPTH).map(z => z);
+    const leaves: bigint[] = data.leaves.map((l: string) => BigInt(l));
+    const roots: bigint[] = [];
+
+    for (const leaf of leaves) {
+      let ci = roots.length;
+      let ch = leaf;
+      const nfs = [...fs];
+      for (let i = 0; i < MERKLE_TREE_DEPTH; i++) {
+        if (ci % 2 === 0) {
+          nfs[i] = ch;
+          ch = F.toObject(poseidon([ch, zeros[i]]));
+        } else {
+          ch = F.toObject(poseidon([fs[i], ch]));
+        }
+        ci = Math.floor(ci / 2);
+      }
+      for (let i = 0; i < MERKLE_TREE_DEPTH; i++) fs[i] = nfs[i];
+      roots.push(ch);
+    }
+
+    return {
+      filledSubs: fs.map(b => b.toString()),
+      leaves: leaves.map(b => b.toString()),
+      nextIndex: leaves.length,
+      roots: roots.map(b => b.toString()),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function ensureTree(): Promise<bigint[]> {
   const poseidon = await getPoseidon();
   const F = poseidon.F;
@@ -108,12 +159,17 @@ async function ensureTree(): Promise<bigint[]> {
   }
 
   if (!treeInitialized) {
-    const saved = loadTree();
+    // Try indexer first, then fall back to localStorage
+    const indexerState = await fetchTreeFromIndexer();
+    const saved = indexerState || loadTree();
+
     if (saved && saved.leaves.length > 0) {
       treeFilledSubs = saved.filledSubs.map(s => BigInt(s));
       treeLeaves = saved.leaves.map(s => BigInt(s));
       treeNextIndex = saved.nextIndex;
       treeRoots = saved.roots.map(s => BigInt(s));
+      // Persist indexer state to localStorage for offline fallback
+      if (indexerState) saveTree(saved);
     } else {
       treeFilledSubs = treeZeros.slice(0, MERKLE_TREE_DEPTH);
       treeLeaves = [];
@@ -162,10 +218,39 @@ export async function treeInsert(commitment: bigint): Promise<bigint> {
   return ch;
 }
 
+/** Try to fetch a Merkle proof from the indexer API */
+async function fetchPathFromIndexer(commitment: bigint): Promise<{
+  root: bigint; pathElements: string[]; pathIndices: number[];
+} | null> {
+  try {
+    // Find the leaf index
+    const findRes = await fetch(`${INDEXER_URL}/tree/find/${commitment.toString()}`);
+    if (!findRes.ok) return null;
+    const { leafIndex } = await findRes.json();
+
+    // Fetch the proof
+    const pathRes = await fetch(`${INDEXER_URL}/tree/path/${leafIndex}`);
+    if (!pathRes.ok) return null;
+    const data = await pathRes.json();
+
+    return {
+      root: BigInt(data.root),
+      pathElements: data.pathElements,
+      pathIndices: data.pathIndices,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Find a commitment in the tree and return its path + root */
 async function findAndBuildPath(commitment: bigint): Promise<{
   root: bigint; pathElements: string[]; pathIndices: number[];
 }> {
+  // Try indexer first
+  const indexerPath = await fetchPathFromIndexer(commitment);
+  if (indexerPath) return indexerPath;
+
   const poseidon = await getPoseidon();
   const F = poseidon.F;
   const zeros = await ensureTree();

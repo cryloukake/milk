@@ -18,6 +18,8 @@ export const MERKLE_TREE = new PublicKey(
 
 export const CLUSTER_URL = "https://api.devnet.solana.com";
 
+export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || "http://localhost:3001";
+
 export const MERKLE_TREE_DEPTH = 20;
 
 // Circuit artifacts (served from public/circuits/)
