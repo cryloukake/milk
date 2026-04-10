@@ -1,146 +1,265 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
-import CircuitBackground from "../components/CircuitBackground";
-import ShieldPanel from "../components/ShieldPanel";
-import TransferPanel from "../components/TransferPanel";
-import UnshieldPanel from "../components/UnshieldPanel";
-
-const WalletProvider = dynamic(
-  () => import("../components/WalletProvider"),
-  { ssr: false }
-);
-
-type Tab = "shield" | "transfer" | "unshield";
-
-const TABS: { key: Tab; label: string; emoji: string }[] = [
-  { key: "shield", label: "SHIELD", emoji: "+" },
-  { key: "transfer", label: "TRANSFER", emoji: ">" },
-  { key: "unshield", label: "UNSHIELD", emoji: "-" },
-];
-
-function AppContent() {
-  const [tab, setTab] = useState<Tab>("shield");
-
+function GridOverlay() {
   return (
     <>
-      <CircuitBackground />
-
-      <div className="relative z-10 flex flex-col items-center min-h-screen px-4 py-6 sm:py-10">
-        {/* Everything constrained to 480px */}
-        <div style={{ width: "100%", maxWidth: 480, margin: "0 auto" }}>
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <Image
-                src="/logo.jpg"
-                alt="MILK"
-                width={42}
-                height={42}
-                className="rounded-xl border-2 border-[var(--border)] shadow-[4px_4px_0px_#000] shrink-0"
-              />
-              <div className="min-w-0">
-                <h1
-                  className="font-arcade text-xl sm:text-2xl tracking-wider text-[var(--gold)]"
-                  style={{ textShadow: "3px 3px 0px #000, 0 0 20px rgba(245,200,66,0.3)" }}
-                >
-                  MILK
-                </h1>
-                <p className="text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] text-[var(--text-dim)] uppercase font-body truncate">
-                  Memory Isolation Layer Kit
-                </p>
-              </div>
-            </div>
-            <WalletMultiButton
-              style={{
-                background: "#222",
-                height: "38px",
-                fontSize: "12px",
-                borderRadius: "8px",
-                border: "2px solid #333",
-                color: "#f5c842",
-                fontFamily: "'Fredoka', sans-serif",
-                fontWeight: 600,
-                boxShadow: "3px 3px 0px #000",
-                padding: "0 12px",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            />
-          </div>
-
-          {/* Tagline */}
-          <p className="text-[var(--text-dim)] text-xs sm:text-sm mb-6 sm:mb-8 text-center font-body">
-            Privacy is a state transition, not a place.
-          </p>
-
-          {/* Main arcade panel */}
-          <div className="arcade-panel animate-bounce-in">
-            {/* Tabs */}
-            <div className="flex border-b-2 border-[var(--border)]">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`flex-1 py-3 sm:py-4 font-arcade text-[10px] sm:text-xs tracking-wider transition-all relative ${
-                    tab === t.key
-                      ? "tab-active"
-                      : "text-[var(--text-dim)] hover:text-[var(--cream)]"
-                  }`}
-                >
-                  <span className="mr-0.5 sm:mr-1 font-mono text-[var(--purple)]">{t.emoji}</span>
-                  {t.label}
-                  {tab === t.key && (
-                    <div className="absolute bottom-0 left-[10%] right-[10%] sm:left-[15%] sm:right-[15%] tab-bar" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Panel content */}
-            <div className="p-4 sm:p-6">
-              {tab === "shield" && <ShieldPanel />}
-              {tab === "transfer" && <TransferPanel />}
-              {tab === "unshield" && <UnshieldPanel />}
-            </div>
-          </div>
-
-          {/* Network badge */}
-          <div className="mt-6 flex justify-center">
-            <div className="flex items-center gap-2 arcade-panel px-4 py-2" style={{ boxShadow: "3px 3px 0px #000" }}>
-              <div className="w-2 h-2 rounded-full bg-[var(--sky)] shadow-[0_0_8px_var(--sky)] animate-pulse" />
-              <span className="text-[11px] text-[var(--sky)] uppercase tracking-wider font-mono font-semibold">
-                Devnet
-              </span>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-8 sm:mt-10 pb-4 text-center space-y-2">
-            <p className="text-[11px] sm:text-[12px] text-[var(--text-dim)] font-body">
-              Zero pools &middot; Zero relayers &middot; Zero trust
-            </p>
-            <p className="font-mono text-[10px] text-[#444]">
-              v0.2.0 &middot; open source &middot; solana-native
-            </p>
-          </div>
-
-        </div>{/* end 480px container */}
-      </div>
+      <div className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(245,200,66,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(245,200,66,0.04) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+      />
+      <div className="fixed top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] pointer-events-none z-0"
+        style={{ background: "radial-gradient(ellipse, rgba(245,200,66,0.12) 0%, transparent 70%)" }}
+      />
+      <div className="fixed top-[30%] right-[-200px] w-[600px] h-[600px] pointer-events-none z-0"
+        style={{ background: "radial-gradient(circle, rgba(71,212,255,0.06) 0%, transparent 70%)" }}
+      />
+      <div className="fixed bottom-[-100px] left-[-150px] w-[500px] h-[500px] pointer-events-none z-0"
+        style={{ background: "radial-gradient(circle, rgba(180,126,255,0.05) 0%, transparent 70%)" }}
+      />
     </>
   );
 }
 
-export default function Home() {
+function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <WalletProvider>
-      <AppContent />
-    </WalletProvider>
+    <div className="arcade-panel p-5" style={{ boxShadow: "6px 6px 0px #000" }}>
+      <div className="text-2xl mb-2">{emoji}</div>
+      <h3 className="font-arcade text-sm text-[var(--gold)] mb-2">{title}</h3>
+      <p className="text-sm text-[var(--text-dim)] font-body leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function StepCard({ num, title, desc }: { num: string; title: string; desc: string }) {
+  return (
+    <div className="flex gap-4 items-start">
+      <div className="font-arcade text-2xl text-[var(--gold)] shrink-0 w-10 h-10 flex items-center justify-center border-2 border-[var(--border)] rounded-lg bg-[#111]"
+        style={{ boxShadow: "3px 3px 0px #000" }}>
+        {num}
+      </div>
+      <div>
+        <h4 className="font-arcade text-xs text-[var(--cream)] mb-1">{title}</h4>
+        <p className="text-sm text-[var(--text-dim)] font-body">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function StatBox({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="font-arcade text-xl sm:text-2xl text-[var(--gold)]"
+        style={{ textShadow: "2px 2px 0px #000" }}>
+        {value}
+      </div>
+      <div className="text-xs text-[var(--text-dim)] font-body mt-1">{label}</div>
+    </div>
+  );
+}
+
+export default function Landing() {
+  return (
+    <>
+      <GridOverlay />
+
+      <div className="relative z-10">
+        {/* Nav */}
+        <nav className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto">
+          <div className="flex items-center gap-3">
+            <Image src="/logo.jpg" alt="MILK" width={36} height={36}
+              className="rounded-lg border-2 border-[var(--border)]"
+              style={{ boxShadow: "3px 3px 0px #000" }} />
+            <span className="font-arcade text-lg text-[var(--gold)]"
+              style={{ textShadow: "2px 2px 0px #000" }}>
+              MILK
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="https://github.com/cryloukake/milk" target="_blank" rel="noopener"
+              className="text-[var(--text-dim)] hover:text-[var(--cream)] text-sm font-body transition-colors">
+              GitHub
+            </a>
+            <Link href="/dapp"
+              className="btn-arcade !w-auto !px-5 !py-2.5 text-xs inline-block">
+              LAUNCH APP
+            </Link>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <section className="text-center px-6 pt-16 pb-20 max-w-3xl mx-auto">
+          <div className="mb-6">
+            <Image src="/logo.jpg" alt="MILK" width={100} height={100}
+              className="mx-auto rounded-2xl border-2 border-[var(--border)]"
+              style={{ boxShadow: "8px 8px 0px #000" }} />
+          </div>
+          <h1 className="font-arcade text-3xl sm:text-5xl text-[var(--gold)] mb-4 leading-tight"
+            style={{ textShadow: "4px 4px 0px #000, 0 0 30px rgba(245,200,66,0.2)" }}>
+            PRIVATE SOL
+            <br />
+            TRANSFERS
+          </h1>
+          <p className="text-[var(--text-dim)] text-lg sm:text-xl font-body mb-3 max-w-lg mx-auto">
+            Zero-knowledge privacy on Solana.
+            <br />
+            No pools. No relayers. No trust.
+          </p>
+          <p className="text-[var(--gold-dark)] text-sm font-body italic mb-10">
+            Privacy is a state transition, not a place.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Link href="/dapp"
+              className="btn-arcade !w-auto !px-8 !py-3.5 text-sm inline-block">
+              LAUNCH APP
+            </Link>
+            <a href="https://github.com/cryloukake/milk" target="_blank" rel="noopener"
+              className="chip !px-8 !py-3.5 text-sm inline-block !border-[var(--border)] hover:!border-[var(--gold-dark)]">
+              VIEW CODE
+            </a>
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="py-12 border-y-2 border-[var(--border)]">
+          <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8 px-6">
+            <StatBox value="~5K" label="ZK constraints" />
+            <StatBox value="$0.01" label="Per transaction" />
+            <StatBox value="~5s" label="Proof generation" />
+            <StatBox value="0" label="Servers needed" />
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="py-20 px-6 max-w-4xl mx-auto">
+          <h2 className="font-arcade text-xl text-[var(--gold)] text-center mb-12"
+            style={{ textShadow: "3px 3px 0px #000" }}>
+            WHY MILK?
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <FeatureCard
+              emoji="🔒"
+              title="NO POOLS"
+              desc="Your tokens stay in your control. No shared liquidity pool, no locked funds, no pool risk."
+            />
+            <FeatureCard
+              emoji="🧠"
+              title="CLIENT-SIDE ZK"
+              desc="Groth16 proofs generated entirely in your browser. No middlemen, no trust assumptions."
+            />
+            <FeatureCard
+              emoji="💰"
+              title="ANY AMOUNT"
+              desc="Send any amount of SOL privately. No fixed denominations — UTXO model with change."
+            />
+            <FeatureCard
+              emoji="🌳"
+              title="GROWING PRIVACY"
+              desc="Anonymity set = entire commitment tree. Every user makes everyone more private."
+            />
+            <FeatureCard
+              emoji="⚡"
+              title="SOLANA-NATIVE"
+              desc="Built on SPL Account Compression and altbn254 syscalls. $0.01 per transaction."
+            />
+            <FeatureCard
+              emoji="📖"
+              title="OPEN SOURCE"
+              desc="Fully auditable Circom circuits, Anchor program, and Next.js frontend. Trust the code."
+            />
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="py-20 px-6 border-t-2 border-[var(--border)]">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="font-arcade text-xl text-[var(--gold)] text-center mb-12"
+              style={{ textShadow: "3px 3px 0px #000" }}>
+              HOW IT WORKS
+            </h2>
+            <div className="space-y-8">
+              <StepCard num="1" title="SHIELD"
+                desc="Connect your wallet and deposit any amount of SOL. A private commitment is created and stored in the Merkle tree. You receive a secret note — save it!" />
+              <StepCard num="2" title="TRANSFER"
+                desc="Paste your secret note and enter the amount to send. A ZK proof verifies balance conservation in your browser. Two new notes are created — one for the recipient, one for your change. No SOL moves on-chain." />
+              <StepCard num="3" title="UNSHIELD"
+                desc="The recipient pastes their secret note and withdraws SOL to any wallet. A ZK proof verifies ownership without revealing the original sender. The link is broken." />
+            </div>
+          </div>
+        </section>
+
+        {/* Architecture */}
+        <section className="py-20 px-6 border-t-2 border-[var(--border)]">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="font-arcade text-xl text-[var(--gold)] text-center mb-12"
+              style={{ textShadow: "3px 3px 0px #000" }}>
+              ARCHITECTURE
+            </h2>
+            <div className="arcade-panel p-6 font-mono text-xs sm:text-sm text-[var(--text-dim)] leading-relaxed overflow-x-auto"
+              style={{ boxShadow: "8px 8px 0px #000" }}>
+              <pre className="text-[var(--gold)]">{`  Commitment = Poseidon(amount, nullifier, secret)
+
+  ┌──────────────┐     ┌─────────────────┐
+  │   Browser    │────▶│  Solana Program  │
+  │              │     │                  │
+  │ • Poseidon   │     │ • Poseidon Tree  │
+  │ • snarkjs    │     │ • Root History   │
+  │ • Groth16    │     │ • Nullifier PDAs │
+  │   proof gen  │     │ • SOL Vault      │
+  └──────────────┘     └─────────────────┘
+         │                     │
+         ▼                     ▼
+  ┌──────────────┐     ┌─────────────────┐
+  │  ZK Circuit  │     │  Groth16 Verify  │
+  │  (Circom)    │     │  (alt_bn128)     │
+  └──────────────┘     └─────────────────┘`}</pre>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20 px-6 text-center border-t-2 border-[var(--border)]">
+          <h2 className="font-arcade text-2xl sm:text-3xl text-[var(--gold)] mb-4"
+            style={{ textShadow: "3px 3px 0px #000" }}>
+            READY?
+          </h2>
+          <p className="text-[var(--text-dim)] font-body mb-8 max-w-md mx-auto">
+            Start making private transfers on Solana. Your browser generates the proofs. Nobody sees who sent what to whom.
+          </p>
+          <Link href="/dapp"
+            className="btn-arcade !w-auto !px-10 !py-4 text-base inline-block">
+            LAUNCH APP
+          </Link>
+        </section>
+
+        {/* Footer */}
+        <footer className="py-10 px-6 border-t-2 border-[var(--border)]">
+          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Image src="/logo.jpg" alt="MILK" width={24} height={24} className="rounded" />
+              <span className="font-arcade text-sm text-[var(--gold)]">MILK</span>
+              <span className="text-[var(--text-dim)] text-xs font-body">Memory Isolation Layer Kit</span>
+            </div>
+            <div className="flex gap-6 text-sm font-body text-[var(--text-dim)]">
+              <a href="https://github.com/cryloukake/milk" target="_blank" rel="noopener"
+                className="hover:text-[var(--cream)] transition-colors">
+                GitHub
+              </a>
+              <Link href="/dapp" className="hover:text-[var(--cream)] transition-colors">
+                App
+              </Link>
+            </div>
+            <p className="text-xs text-[#444] font-mono">
+              Zero pools · Zero relayers · Zero trust
+            </p>
+          </div>
+        </footer>
+      </div>
+    </>
   );
 }
