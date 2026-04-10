@@ -2,9 +2,9 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
+COPY indexer/package.json indexer/yarn.lock ./
 RUN yarn install --production
 
-COPY src/ ./src/
+COPY indexer/src/ ./src/
 
 CMD ["node", "src/index.js"]
