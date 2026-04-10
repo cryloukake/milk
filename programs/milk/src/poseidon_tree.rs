@@ -1,6 +1,4 @@
 use anchor_lang::prelude::*;
-use light_poseidon::{Poseidon, PoseidonBytesHasher};
-use ark_bn254::Fr;
 
 pub const TREE_DEPTH: usize = 20;
 pub const ROOT_HISTORY_SIZE: usize = 30;
@@ -31,10 +29,26 @@ const ZEROS: [[u8; 32]; 21] = [
     [0x21, 0x34, 0xe7, 0x6a, 0xc5, 0xd2, 0x1a, 0xab, 0x18, 0x6c, 0x2b, 0xe1, 0xdd, 0x8f, 0x84, 0xee, 0x88, 0x0a, 0x1e, 0x46, 0xea, 0xf7, 0x12, 0xf9, 0xd3, 0x71, 0xb6, 0xdf, 0x22, 0x19, 0x1f, 0x3e],
 ];
 
-/// Hash two 32-byte nodes. Creates hasher once per `insert` call via the
-/// wrapper below — NOT per hash.
-fn poseidon_hash2(hasher: &mut Poseidon<Fr>, left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
-    hasher.hash_bytes_be(&[left.as_ref(), right.as_ref()]).unwrap()
+/// Hash two 32-byte nodes using the Poseidon syscall (on-chain) or light-poseidon (native tests).
+/// No stack overflow — the syscall runs in the Solana runtime, not in program stack.
+fn poseidon_hash2(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
+    #[cfg(target_os = "solana")]
+    {
+        use solana_poseidon::{hashv, Parameters, Endianness, PoseidonHash};
+        let result: PoseidonHash = hashv(
+            Parameters::Bn254X5,
+            Endianness::BigEndian,
+            &[left.as_ref(), right.as_ref()],
+        ).expect("poseidon hash failed");
+        result.to_bytes()
+    }
+    #[cfg(not(target_os = "solana"))]
+    {
+        use light_poseidon::{Poseidon, PoseidonBytesHasher};
+        use ark_bn254::Fr;
+        let mut hasher = Poseidon::<Fr>::new_circom(2).unwrap();
+        hasher.hash_bytes_be(&[left.as_ref(), right.as_ref()]).unwrap()
+    }
 }
 
 #[account(zero_copy)]
@@ -70,16 +84,15 @@ impl MerkleTreeState {
             MerkleTreeError::TreeFull
         );
 
-        let mut hasher = Poseidon::<Fr>::new_circom(2).unwrap();
         let mut current_index = self.next_index as usize;
         let mut current_hash = leaf;
 
         for i in 0..TREE_DEPTH {
             if current_index % 2 == 0 {
                 self.filled_subtrees[i] = current_hash;
-                current_hash = poseidon_hash2(&mut hasher, &current_hash, &ZEROS[i]);
+                current_hash = poseidon_hash2(&current_hash, &ZEROS[i]);
             } else {
-                current_hash = poseidon_hash2(&mut hasher, &self.filled_subtrees[i], &current_hash);
+                current_hash = poseidon_hash2(&self.filled_subtrees[i], &current_hash);
             }
             current_index /= 2;
         }

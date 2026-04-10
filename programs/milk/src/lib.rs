@@ -71,14 +71,13 @@ pub mod milk {
         Ok(())
     }
 
-    /// Shield: client provides the new_root computed after inserting the commitment.
-    /// The program stores commitment + root without recomputing Poseidon on-chain
-    /// (too expensive: ~1.2M CU for 20 hashes). Root is verified at spend time.
-    pub fn shield(ctx: Context<Shield>, amount: u64, commitment: [u8; 32], new_root: [u8; 32]) -> Result<()> {
+    /// Shield: insert commitment into Poseidon tree on-chain.
+    /// Root is computed on-chain via 20 Poseidon hashes (~1.2M CU).
+    /// Requires compute budget of 1_400_000 CU.
+    pub fn shield(ctx: Context<Shield>, amount: u64, commitment: [u8; 32]) -> Result<()> {
         require!(amount > 0, MilkError::InvalidAmount);
         require!(amount <= 1_000_000 * LAMPORTS_PER_SOL, MilkError::AmountTooLarge); // 1M SOL max
         require!(commitment != [0u8; 32], MilkError::ZeroCommitment);
-        require!(new_root != [0u8; 32], MilkError::RootMismatch);
 
         system_program::transfer(
             CpiContext::new(
@@ -91,12 +90,9 @@ pub mod milk {
             amount,
         )?;
 
-        // Store the client-provided root in history and advance the leaf counter
+        // Compute root on-chain — no longer trusting client-provided roots
         let mut tree = ctx.accounts.poseidon_tree.load_mut()?;
-        let new_idx = (tree.current_root_index as usize + 1) % poseidon_tree::ROOT_HISTORY_SIZE;
-        tree.roots[new_idx] = new_root;
-        tree.current_root_index = new_idx as u32;
-        tree.next_index += 1;
+        tree.insert(commitment)?;
         drop(tree);
 
         // Also append to SPL tree for indexing
@@ -279,7 +275,7 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount: u64, commitment: [u8; 32], new_root: [u8; 32])]
+#[instruction(amount: u64, commitment: [u8; 32])]
 pub struct Shield<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
