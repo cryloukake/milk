@@ -20,6 +20,8 @@ use vk::{get_transfer_vk, get_unshield_vk};
 
 declare_id!("9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy");
 
+const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
+
 #[program]
 pub mod milk {
     use super::*;
@@ -74,6 +76,9 @@ pub mod milk {
     /// (too expensive: ~1.2M CU for 20 hashes). Root is verified at spend time.
     pub fn shield(ctx: Context<Shield>, amount: u64, commitment: [u8; 32], new_root: [u8; 32]) -> Result<()> {
         require!(amount > 0, MilkError::InvalidAmount);
+        require!(amount <= 1_000_000 * LAMPORTS_PER_SOL, MilkError::AmountTooLarge); // 1M SOL max
+        require!(commitment != [0u8; 32], MilkError::ZeroCommitment);
+        require!(new_root != [0u8; 32], MilkError::RootMismatch);
 
         system_program::transfer(
             CpiContext::new(
@@ -193,6 +198,11 @@ pub mod milk {
         amount: u64,
     ) -> Result<()> {
         require!(amount > 0, MilkError::InvalidAmount);
+        require!(amount <= 1_000_000 * LAMPORTS_PER_SOL, MilkError::AmountTooLarge);
+
+        // Check vault balance BEFORE expensive proof verification
+        let vault_lamports = ctx.accounts.vault.lamports();
+        require!(vault_lamports >= amount, MilkError::InsufficientVaultBalance);
 
         // Verify root
         {
@@ -210,9 +220,6 @@ pub mod milk {
         require!(valid, MilkError::InvalidProof);
 
         ctx.accounts.nullifier.nullifier = nullifier_hash;
-
-        let vault_lamports = ctx.accounts.vault.lamports();
-        require!(vault_lamports >= amount, MilkError::InsufficientVaultBalance);
 
         let config = &ctx.accounts.pool_config;
         let vault_seeds: &[&[u8]] = &[b"vault", &[config.vault_bump]];

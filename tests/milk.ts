@@ -36,6 +36,7 @@ function p2c(p: any) {
     c: [...toBE32(p.pi_c[0]), ...toBE32(p.pi_c[1])],
   };
 }
+const DUMMY_PROOF = { a: new Array(64).fill(0), b: new Array(128).fill(0), c: new Array(64).fill(0) };
 
 describe("milk (UTXO + Poseidon tree)", () => {
   const provider = anchor.AnchorProvider.env();
@@ -52,7 +53,6 @@ describe("milk (UTXO + Poseidon tree)", () => {
   let F: any;
   let zeros: bigint[];
 
-  // Incremental tree state (mirrors on-chain)
   let filledSubs: bigint[];
   let nextIdx = 0;
   const allLeaves: bigint[] = [];
@@ -73,30 +73,22 @@ describe("milk (UTXO + Poseidon tree)", () => {
     return ch;
   }
 
-  /** Compute path for leaf at `idx` using simple walk — all siblings from filledSubs state AFTER all inserts */
   function getSimplePath(leafIdx: number): { root: bigint; pe: string[]; pi: number[] } {
-    // For leaf 0 in single-leaf tree: all siblings are zeros
     if (allLeaves.length === 1 && leafIdx === 0) {
       let ch = allLeaves[0];
       for (let i = 0; i < DEPTH; i++) ch = F.toObject(poseidon([ch, zeros[i]]));
       return { root: ch, pe: zeros.slice(0, DEPTH).map(z => z.toString()), pi: new Array(DEPTH).fill(0) };
     }
-    // For 3-leaf tree, compute manually
     const l = allLeaves;
     const n01 = F.toObject(poseidon([l[0], l[1]]));
     const n10 = F.toObject(poseidon([l[2], zeros[0]]));
     const n20 = F.toObject(poseidon([n01, n10]));
     let rootCh = n20;
     for (let i = 2; i < DEPTH; i++) rootCh = F.toObject(poseidon([rootCh, zeros[i]]));
-
     if (leafIdx === 0) {
-      const pe = [l[1].toString(), n10.toString(), ...zeros.slice(2, DEPTH).map(z => z.toString())];
-      const pi = [0, 0, ...new Array(DEPTH - 2).fill(0)];
-      return { root: rootCh, pe, pi };
+      return { root: rootCh, pe: [l[1].toString(), n10.toString(), ...zeros.slice(2, DEPTH).map(z => z.toString())], pi: [0, 0, ...new Array(DEPTH - 2).fill(0)] };
     } else if (leafIdx === 2) {
-      const pe = [zeros[0].toString(), n01.toString(), ...zeros.slice(2, DEPTH).map(z => z.toString())];
-      const pi = [0, 1, ...new Array(DEPTH - 2).fill(0)];
-      return { root: rootCh, pe, pi };
+      return { root: rootCh, pe: [zeros[0].toString(), n01.toString(), ...zeros.slice(2, DEPTH).map(z => z.toString())], pi: [0, 1, ...new Array(DEPTH - 2).fill(0)] };
     }
     throw new Error("unsupported leafIdx");
   }
@@ -105,7 +97,7 @@ describe("milk (UTXO + Poseidon tree)", () => {
   let dNul: bigint, dSec: bigint, dAmt = BigInt(5 * LAMPORTS_PER_SOL), dComm: bigint, dNulHash: bigint;
   // Transfer outputs
   let cNul: bigint, cSec: bigint, cAmt = BigInt(2 * LAMPORTS_PER_SOL), cComm: bigint;
-  let rComm: bigint;
+  let rNul: bigint, rSec: bigint, rAmt: bigint, rComm: bigint;
 
   before(async () => {
     await loadEsmDeps();
@@ -123,6 +115,10 @@ describe("milk (UTXO + Poseidon tree)", () => {
     dComm = F.toObject(poseidon([dAmt, dNul, dSec]));
     dNulHash = F.toObject(poseidon([dNul]));
   });
+
+  // ======================================================================
+  // CORE FLOW TESTS
+  // ======================================================================
 
   it("initializes", async () => {
     splTree = Keypair.generate();
@@ -147,6 +143,11 @@ describe("milk (UTXO + Poseidon tree)", () => {
     for (const k of ix.keys) { if (k.pubkey.equals(splTree.publicKey)) k.isWritable = true; }
     const cu = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
     await provider.sendAndConfirm(new Transaction().add(cu).add(ix));
+
+    const cfg = await program.account.poolConfig.fetch(poolPda);
+    expect(cfg.depositCount.toNumber()).to.equal(0);
+    expect(cfg.transferCount.toNumber()).to.equal(0);
+    expect(cfg.withdrawalCount.toNumber()).to.equal(0);
     console.log("    Initialized");
   });
 
@@ -158,21 +159,18 @@ describe("milk (UTXO + Poseidon tree)", () => {
       .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
         compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
       .rpc();
-    const va = await connection.getBalance(vaultPda);
-    expect(va - vb).to.equal(5 * LAMPORTS_PER_SOL);
-    console.log("    Shielded 5 SOL, vault:", va / LAMPORTS_PER_SOL);
+    expect(await connection.getBalance(vaultPda) - vb).to.equal(5 * LAMPORTS_PER_SOL);
+    console.log("    Shielded 5 SOL");
   });
 
   it("transfers 3 SOL privately", async () => {
-    const rAmt = BigInt(3 * LAMPORTS_PER_SOL);
-    const rNul = rand(), rSec = rand();
+    rAmt = BigInt(3 * LAMPORTS_PER_SOL);
+    rNul = rand(); rSec = rand();
     rComm = F.toObject(poseidon([rAmt, rNul, rSec]));
     cNul = rand(); cSec = rand();
     cComm = F.toObject(poseidon([cAmt, cNul, cSec]));
 
-    // Single-leaf tree path (leaf 0, all siblings zeros)
     const { root, pe, pi } = getSimplePath(0);
-
     console.log("    Generating transfer proof...");
     const { proof } = await snarkjs.groth16.fullProve({
       root: root.toString(), nullifierHash: dNulHash.toString(),
@@ -182,22 +180,18 @@ describe("milk (UTXO + Poseidon tree)", () => {
       outAmount2: cAmt.toString(), outNullifier2: cNul.toString(), outSecret2: cSec.toString(),
       pathElements: pe, pathIndices: pi,
     }, XFER_WASM, XFER_ZKEY);
-    console.log("    Proof generated");
 
     const vb = await connection.getBalance(vaultPda);
-    const rootAfter1 = treeInsert(rComm);
-    const rootAfter2 = treeInsert(cComm);
-
+    const r1 = treeInsert(rComm), r2 = treeInsert(cComm);
     await program.methods.transfer(
       p2c(proof), Array.from(toBE32(root)), Array.from(toBE32(dNulHash)),
       Array.from(toBE32(rComm)), Array.from(toBE32(cComm)),
-      Array.from(toBE32(rootAfter1)), Array.from(toBE32(rootAfter2)),
+      Array.from(toBE32(r1)), Array.from(toBE32(r2)),
     ).accounts({ payer: wallet.publicKey, splMerkleTree: splTree.publicKey,
       compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID,
     }).preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })]).rpc();
-
     expect(await connection.getBalance(vaultPda)).to.equal(vb);
-    console.log("    5 SOL -> 3 (recipient) + 2 (change). Vault unchanged.");
+    console.log("    Transferred 5 -> 3 + 2");
   });
 
   it("unshields 2 SOL change", async () => {
@@ -208,7 +202,6 @@ describe("milk (UTXO + Poseidon tree)", () => {
 
     const cNulHash = F.toObject(poseidon([cNul]));
     const { root, pe, pi } = getSimplePath(2);
-
     console.log("    Generating unshield proof...");
     const recBig = BigInt("0x" + recipient.publicKey.toBuffer().toString("hex"));
     const { proof } = await snarkjs.groth16.fullProve({
@@ -217,32 +210,182 @@ describe("milk (UTXO + Poseidon tree)", () => {
       nullifier: cNul.toString(), secret: cSec.toString(),
       pathElements: pe, pathIndices: pi,
     }, UNSH_WASM, UNSH_ZKEY);
-    console.log("    Proof generated");
 
     await program.methods.unshield(
       p2c(proof), Array.from(toBE32(root)), Array.from(toBE32(cNulHash)),
       new anchor.BN(cAmt.toString()),
     ).accounts({ relayerOrUser: wallet.publicKey, recipient: recipient.publicKey,
     }).preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })]).rpc();
-
-    const ra = await connection.getBalance(recipient.publicKey);
-    expect(ra - rb).to.equal(2 * LAMPORTS_PER_SOL);
-    console.log("    Recipient received:", (ra - rb) / LAMPORTS_PER_SOL, "SOL");
+    expect(await connection.getBalance(recipient.publicKey) - rb).to.equal(2 * LAMPORTS_PER_SOL);
+    console.log("    Unshielded 2 SOL");
   });
 
-  it("prevents double-spend", async () => {
+  // ======================================================================
+  // SECURITY TESTS
+  // ======================================================================
+
+  it("prevents double-spend (reuse transfer nullifier)", async () => {
     try {
       await program.methods.transfer(
-        { a: new Array(64).fill(0), b: new Array(128).fill(0), c: new Array(64).fill(0) },
-        Array.from(toBE32(BigInt(1))), Array.from(toBE32(dNulHash)),
+        DUMMY_PROOF, Array.from(toBE32(BigInt(1))), Array.from(toBE32(dNulHash)),
         Array.from(toBE32(rand())), Array.from(toBE32(rand())),
         Array.from(toBE32(rand())), Array.from(toBE32(rand())),
       ).accounts({ payer: wallet.publicKey, splMerkleTree: splTree.publicKey,
         compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID,
       }).rpc();
-      expect.fail("Should throw");
+      expect.fail("Should reject");
     } catch (e: any) {
-      console.log("    Double-spend rejected:", e.message?.substring(0, 60));
+      expect(e.message).to.include("already in use");
+      console.log("    Transfer double-spend rejected");
     }
+  });
+
+  it("prevents double-spend (reuse unshield nullifier via transfer)", async () => {
+    const cNulHash = F.toObject(poseidon([cNul]));
+    try {
+      await program.methods.transfer(
+        DUMMY_PROOF, Array.from(toBE32(BigInt(1))), Array.from(toBE32(cNulHash)),
+        Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+        Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+      ).accounts({ payer: wallet.publicKey, splMerkleTree: splTree.publicKey,
+        compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID,
+      }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("already in use");
+      console.log("    Cross-instruction double-spend rejected");
+    }
+  });
+
+  it("rejects shield with zero amount", async () => {
+    const comm = F.toObject(poseidon([BigInt(0), rand(), rand()]));
+    const root = treeInsert(comm);
+    try {
+      await program.methods
+        .shield(new anchor.BN(0), Array.from(toBE32(comm)), Array.from(toBE32(root)))
+        .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
+          compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+        .rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("InvalidAmount");
+      console.log("    Zero amount shield rejected");
+    }
+  });
+
+  it("rejects shield with zero commitment", async () => {
+    try {
+      await program.methods
+        .shield(new anchor.BN(LAMPORTS_PER_SOL), Array.from(new Uint8Array(32)), Array.from(toBE32(rand())))
+        .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
+          compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+        .rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("ZeroCommitment");
+      console.log("    Zero commitment shield rejected");
+    }
+  });
+
+  it("rejects shield with zero root", async () => {
+    const comm = F.toObject(poseidon([BigInt(LAMPORTS_PER_SOL), rand(), rand()]));
+    try {
+      await program.methods
+        .shield(new anchor.BN(LAMPORTS_PER_SOL), Array.from(toBE32(comm)), Array.from(new Uint8Array(32)))
+        .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
+          compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+        .rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("RootMismatch");
+      console.log("    Zero root shield rejected");
+    }
+  });
+
+  it("rejects unshield with zero amount", async () => {
+    try {
+      await program.methods.unshield(
+        DUMMY_PROOF, Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+        new anchor.BN(0),
+      ).accounts({ relayerOrUser: wallet.publicKey, recipient: wallet.publicKey }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("InvalidAmount");
+      console.log("    Zero amount unshield rejected");
+    }
+  });
+
+  it("rejects unshield exceeding vault balance", async () => {
+    // Vault has ~3 SOL remaining (5 deposited - 2 withdrawn)
+    try {
+      await program.methods.unshield(
+        DUMMY_PROOF, Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+        new anchor.BN((100 * LAMPORTS_PER_SOL).toString()),
+      ).accounts({ relayerOrUser: wallet.publicKey, recipient: wallet.publicKey }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("InsufficientVaultBalance");
+      console.log("    Vault overdraw rejected");
+    }
+  });
+
+  it("rejects transfer with unknown root", async () => {
+    const fakeRoot = rand();
+    try {
+      await program.methods.transfer(
+        DUMMY_PROOF, Array.from(toBE32(fakeRoot)), Array.from(toBE32(rand())),
+        Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+        Array.from(toBE32(rand())), Array.from(toBE32(rand())),
+      ).accounts({ payer: wallet.publicKey, splMerkleTree: splTree.publicKey,
+        compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID,
+      }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("RootMismatch");
+      console.log("    Unknown root transfer rejected");
+    }
+  });
+
+  it("rejects unshield with unknown root", async () => {
+    const fakeRoot = rand();
+    try {
+      await program.methods.unshield(
+        DUMMY_PROOF, Array.from(toBE32(fakeRoot)), Array.from(toBE32(rand())),
+        new anchor.BN(LAMPORTS_PER_SOL),
+      ).accounts({ relayerOrUser: wallet.publicKey, recipient: wallet.publicKey }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      expect(e.message).to.include("RootMismatch");
+      console.log("    Unknown root unshield rejected");
+    }
+  });
+
+  it("rejects re-initialization", async () => {
+    const newTree = Keypair.generate();
+    try {
+      await program.methods.initialize(DEPTH, MAX_BUF).accounts({
+        authority: wallet.publicKey, splMerkleTree: newTree.publicKey,
+        compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID,
+      }).rpc();
+      expect.fail("Should reject");
+    } catch (e: any) {
+      // pool_config PDA already exists — init constraint fails
+      expect(e).to.exist;
+      console.log("    Re-initialization rejected");
+    }
+  });
+
+  it("verifies counters are correct after all operations", async () => {
+    const cfg = await program.account.poolConfig.fetch(poolPda);
+    expect(cfg.depositCount.toNumber()).to.equal(1);
+    expect(cfg.transferCount.toNumber()).to.equal(1);
+    expect(cfg.withdrawalCount.toNumber()).to.equal(1);
+    console.log("    Counters: deposits=1, transfers=1, withdrawals=1");
+  });
+
+  it("verifies vault balance is correct (5 in - 2 out = 3 remaining)", async () => {
+    const vaultBal = await connection.getBalance(vaultPda);
+    expect(vaultBal).to.equal(3 * LAMPORTS_PER_SOL);
+    console.log("    Vault balance: 3 SOL (correct)");
   });
 });

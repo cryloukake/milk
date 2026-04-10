@@ -16,4 +16,8 @@ pub enum MilkError {
     ProofVerificationFailed,
     #[msg("Invalid public inputs length")]
     InvalidPublicInputs,
+    #[msg("Commitment cannot be zero")]
+    ZeroCommitment,
+    #[msg("Amount exceeds maximum allowed")]
+    AmountTooLarge,
 }
