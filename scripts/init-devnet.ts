@@ -15,7 +15,7 @@ import {
 import * as fs from "fs";
 import * as path from "path";
 
-const PROGRAM_ID = new PublicKey("75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3");
+const PROGRAM_ID = new PublicKey("9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy");
 const MERKLE_TREE_DEPTH = 20;
 const MAX_BUFFER_SIZE = 64;
 
@@ -68,7 +68,7 @@ async function main() {
     .initialize(MERKLE_TREE_DEPTH, MAX_BUFFER_SIZE)
     .accounts({
       authority: authority.publicKey,
-      merkleTree: merkleTreeKeypair.publicKey,
+      splMerkleTree: merkleTreeKeypair.publicKey,
       compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
       logWrapper: SPL_NOOP_PROGRAM_ID,
     })

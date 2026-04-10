@@ -10,7 +10,7 @@ import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
 } from "../lib/constants";
-import { generateDeposit, encodeNote, toBE32 } from "../lib/crypto";
+import { generateDeposit, encodeNote, toBE32, treeInsert } from "../lib/crypto";
 
 type Status = "idle" | "generating" | "sending" | "done" | "error";
 
@@ -39,14 +39,16 @@ export default function ShieldPanel() {
       const lamports = BigInt(Math.round(solAmount * LAMPORTS_PER_SOL));
       const deposit = await generateDeposit(lamports);
       const commitmentBytes = Array.from(toBE32(deposit.commitment));
+      const newRoot = await treeInsert(deposit.commitment);
+      const newRootBytes = Array.from(toBE32(newRoot));
       const bnAmount = new anchor.BN(lamports.toString());
 
       setStatus("sending");
       const tx = await program.methods
-        .shield(bnAmount, commitmentBytes)
+        .shield(bnAmount, commitmentBytes, newRootBytes)
         .accounts({
           depositor: publicKey,
-          merkleTree: MERKLE_TREE,
+          splMerkleTree: MERKLE_TREE,
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
           logWrapper: SPL_NOOP_PROGRAM_ID,
         })

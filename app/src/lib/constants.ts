@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const PROGRAM_ID = new PublicKey(
-  "75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3"
+  "9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy"
 );
 
 export const SPL_ACCOUNT_COMPRESSION_PROGRAM_ID = new PublicKey(
@@ -13,7 +13,7 @@ export const SPL_NOOP_PROGRAM_ID = new PublicKey(
 );
 
 export const MERKLE_TREE = new PublicKey(
-  "7Z27W5hzsJvj1GBhL3iuJciuHbZ6mcLCt3ACUHBE5DSq"
+  "4So8CTAUtoc4A5gnFeAcM9ZpuyssAjnYmHyMeUz8V9jm"
 );
 
 export const CLUSTER_URL = "https://api.devnet.solana.com";

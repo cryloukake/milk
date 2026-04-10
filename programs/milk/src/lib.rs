@@ -18,7 +18,7 @@ use poseidon_tree::MerkleTreeState;
 use state::*;
 use vk::{get_transfer_vk, get_unshield_vk};
 
-declare_id!("75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3");
+declare_id!("9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy");
 
 #[program]
 pub mod milk {

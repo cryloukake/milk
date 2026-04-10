@@ -1,5 +1,5 @@
 {
-  "address": "75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3",
+  "address": "9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy",
   "metadata": {
     "name": "milk",
     "version": "0.1.0",
@@ -9,10 +9,6 @@
   "instructions": [
     {
       "name": "initialize",
-      "docs": [
-        "Initialize the protocol: create PoolConfig PDA and the SOL vault.",
-        "The Merkle tree must be pre-allocated and is initialized via CPI."
-      ],
       "discriminator": [
         175,
         175,
@@ -54,10 +50,36 @@
           }
         },
         {
-          "name": "vault",
+          "name": "poseidon_tree",
           "docs": [
-            "SOL vault PDA — holds all deposited SOL."
+            "Poseidon Merkle tree — zero_copy for large account."
           ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  101,
+                  105,
+                  100,
+                  111,
+                  110,
+                  95,
+                  116,
+                  114,
+                  101,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
           "writable": true,
           "pda": {
             "seeds": [
@@ -75,10 +97,7 @@
           }
         },
         {
-          "name": "merkle_tree",
-          "docs": [
-            "The concurrent Merkle tree (must be pre-allocated)."
-          ],
+          "name": "spl_merkle_tree",
           "writable": true
         },
         {
@@ -108,12 +127,9 @@
     {
       "name": "shield",
       "docs": [
-        "Shield (deposit): Transfer arbitrary SOL into the vault and append a",
-        "commitment to the Merkle tree.",
-        "",
-        "No ZK proof needed — the amount is public (it's a SOL transfer).",
-        "The client computes: commitment = Poseidon(amount, nullifier, secret)",
-        "and passes the 32-byte commitment hash."
+        "Shield: client provides the new_root computed after inserting the commitment.",
+        "The program stores commitment + root without recomputing Poseidon on-chain",
+        "(too expensive: ~1.2M CU for 20 hashes). Root is verified at spend time."
       ],
       "discriminator": [
         220,
@@ -156,6 +172,32 @@
           }
         },
         {
+          "name": "poseidon_tree",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  101,
+                  105,
+                  100,
+                  111,
+                  110,
+                  95,
+                  116,
+                  114,
+                  101,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "vault",
           "writable": true,
           "pda": {
@@ -174,7 +216,7 @@
           }
         },
         {
-          "name": "merkle_tree",
+          "name": "spl_merkle_tree",
           "writable": true
         },
         {
@@ -203,24 +245,20 @@
               32
             ]
           }
+        },
+        {
+          "name": "new_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
     {
       "name": "transfer",
-      "docs": [
-        "Transfer (private send): Spend one input commitment and create two",
-        "new output commitments (recipient balance + sender change).",
-        "",
-        "NO SOL moves — this only updates the Merkle tree.",
-        "The ZK proof verifies:",
-        "1. Input commitment exists in the tree (Merkle inclusion)",
-        "2. Nullifier is correctly derived",
-        "3. Output commitments are correctly formed",
-        "4. Balance conservation: inAmount = outAmount1 + outAmount2",
-        "",
-        "Public inputs: root, nullifierHash, outCommitment1, outCommitment2"
-      ],
       "discriminator": [
         163,
         52,
@@ -262,10 +300,33 @@
           }
         },
         {
+          "name": "poseidon_tree",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  101,
+                  105,
+                  100,
+                  111,
+                  110,
+                  95,
+                  116,
+                  114,
+                  101,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "nullifier",
-          "docs": [
-            "Nullifier PDA — init on first use; double-spend = already-exists error."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -291,7 +352,7 @@
           }
         },
         {
-          "name": "merkle_tree",
+          "name": "spl_merkle_tree",
           "writable": true
         },
         {
@@ -351,22 +412,29 @@
               32
             ]
           }
+        },
+        {
+          "name": "new_root_after_out1",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_root_after_out2",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
     {
       "name": "unshield",
-      "docs": [
-        "Unshield (withdraw): Spend a commitment and withdraw SOL to a recipient.",
-        "",
-        "The ZK proof verifies:",
-        "1. Input commitment exists in the tree (Merkle inclusion)",
-        "2. Nullifier is correctly derived",
-        "3. The public withdrawal amount matches the committed amount",
-        "4. Recipient is bound to prevent front-running",
-        "",
-        "Public inputs: root, nullifierHash, amount, recipient"
-      ],
       "discriminator": [
         21,
         228,
@@ -408,6 +476,31 @@
           }
         },
         {
+          "name": "poseidon_tree",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  101,
+                  105,
+                  100,
+                  111,
+                  110,
+                  95,
+                  116,
+                  114,
+                  101,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "vault",
           "writable": true,
           "pda": {
@@ -427,9 +520,6 @@
         },
         {
           "name": "nullifier",
-          "docs": [
-            "Nullifier PDA — init on first use; double-spend = already-exists error."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -499,6 +589,19 @@
   ],
   "accounts": [
     {
+      "name": "MerkleTreeState",
+      "discriminator": [
+        110,
+        93,
+        37,
+        106,
+        12,
+        80,
+        172,
+        23
+      ]
+    },
+    {
       "name": "NullifierAccount",
       "discriminator": [
         250,
@@ -563,6 +666,76 @@
     }
   ],
   "types": [
+    {
+      "name": "MerkleTreeState",
+      "serialization": "bytemuck",
+      "repr": {
+        "kind": "c"
+      },
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "_padding",
+            "type": {
+              "array": [
+                "u8",
+                3
+              ]
+            }
+          },
+          {
+            "name": "next_index",
+            "type": "u32"
+          },
+          {
+            "name": "current_root_index",
+            "type": "u32"
+          },
+          {
+            "name": "_padding2",
+            "type": {
+              "array": [
+                "u8",
+                4
+              ]
+            }
+          },
+          {
+            "name": "filled_subtrees",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                20
+              ]
+            }
+          },
+          {
+            "name": "roots",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                30
+              ]
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "NullifierAccount",
       "docs": [

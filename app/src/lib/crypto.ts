@@ -84,18 +84,65 @@ export function decodeNote(note: string): {
   };
 }
 
-// ---- Merkle proof (client-side Poseidon tree, leaf at index 0) ----
+// ---- Client-side incremental Poseidon Merkle tree ----
+// Mirrors the on-chain tree logic for computing roots and paths.
 
+let treeZeros: bigint[] | null = null;
+let treeFilledSubs: bigint[] | null = null;
+let treeNextIndex = 0;
+const treeLeaves: bigint[] = [];
+
+async function getZeros(): Promise<bigint[]> {
+  if (treeZeros) return treeZeros;
+  const poseidon = await getPoseidon();
+  const F = poseidon.F;
+  treeZeros = [BigInt(0)];
+  for (let i = 0; i < MERKLE_TREE_DEPTH; i++) {
+    treeZeros.push(F.toObject(poseidon([treeZeros[i], treeZeros[i]])));
+  }
+  treeFilledSubs = treeZeros.slice(0, MERKLE_TREE_DEPTH);
+  return treeZeros;
+}
+
+/** Insert a commitment and return the new Poseidon Merkle root */
+export async function treeInsert(commitment: bigint): Promise<bigint> {
+  const poseidon = await getPoseidon();
+  const F = poseidon.F;
+  const zeros = await getZeros();
+  if (!treeFilledSubs) treeFilledSubs = zeros.slice(0, MERKLE_TREE_DEPTH);
+
+  let ci = treeNextIndex;
+  let ch = commitment;
+  const nfs = [...treeFilledSubs];
+
+  for (let i = 0; i < MERKLE_TREE_DEPTH; i++) {
+    if (ci % 2 === 0) {
+      nfs[i] = ch;
+      ch = F.toObject(poseidon([ch, zeros[i]]));
+    } else {
+      ch = F.toObject(poseidon([treeFilledSubs[i], ch]));
+    }
+    ci = Math.floor(ci / 2);
+  }
+
+  treeFilledSubs = nfs;
+  treeLeaves.push(commitment);
+  treeNextIndex++;
+  return ch;
+}
+
+/** Build Merkle proof for a single-leaf tree (index 0, all siblings zeros) */
 async function buildMerkleProof(commitment: bigint) {
   const poseidon = await getPoseidon();
   const F = poseidon.F;
+  const zeros = await getZeros();
   const pathElements: string[] = [];
   const pathIndices: number[] = [];
   let cur = commitment;
   for (let i = 0; i < MERKLE_TREE_DEPTH; i++) {
-    pathElements.push("0");
+    pathElements.push(zeros[i].toString());
     pathIndices.push(0);
-    cur = F.toObject(poseidon([cur, BigInt(0)]));
+    cur = F.toObject(poseidon([cur, zeros[i]]));
   }
   return { root: cur, pathElements, pathIndices };
 }

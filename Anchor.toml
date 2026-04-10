@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-milk = "75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3"
+milk = "9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy"
 
 [programs.devnet]
-milk = "75utYMqomgjvnWfRWGF4cA5QMaeYjGYkq7Ls6ZCGZdS3"
+milk = "9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy"
 
 [registry]
 url = "https://api.apr.dev"

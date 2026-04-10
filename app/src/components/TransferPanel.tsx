@@ -9,7 +9,7 @@ import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
 } from "../lib/constants";
-import { decodeNote, encodeNote, generateTransferProof, toBE32 } from "../lib/crypto";
+import { decodeNote, encodeNote, generateTransferProof, toBE32, treeInsert } from "../lib/crypto";
 
 type Status = "idle" | "proving" | "sending" | "done" | "error";
 
@@ -44,6 +44,11 @@ export default function TransferPanel() {
       const result = await generateTransferProof(inAmount, nullifier, secret, sendLamports, changeLamports);
 
       setStatus("sending");
+
+      // Compute new roots after inserting each output
+      const rootAfterOut1 = await treeInsert(result.outCommitment1);
+      const rootAfterOut2 = await treeInsert(result.outCommitment2);
+
       const tx = await program.methods
         .transfer(
           result.proof,
@@ -51,10 +56,12 @@ export default function TransferPanel() {
           Array.from(toBE32(result.nullifierHash)),
           Array.from(toBE32(result.outCommitment1)),
           Array.from(toBE32(result.outCommitment2)),
+          Array.from(toBE32(rootAfterOut1)),
+          Array.from(toBE32(rootAfterOut2)),
         )
         .accounts({
           payer: publicKey,
-          merkleTree: MERKLE_TREE,
+          splMerkleTree: MERKLE_TREE,
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
           logWrapper: SPL_NOOP_PROGRAM_ID,
         })
