@@ -23,11 +23,11 @@ startup_wait = 30000
 
 [test.validator]
 
-[[test.validator.programs]]
+[[test.genesis]]
 address = "cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"
 program = "/tmp/spl_account_compression.so"
 
-[[test.validator.programs]]
+[[test.genesis]]
 address = "noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"
 program = "/tmp/spl_noop.so"
 

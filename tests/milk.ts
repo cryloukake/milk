@@ -153,11 +153,12 @@ describe("milk (UTXO + Poseidon tree)", () => {
 
   it("shields 5 SOL", async () => {
     const vb = await connection.getBalance(vaultPda);
-    const newRoot = treeInsert(dComm);
+    treeInsert(dComm); // track locally for transfer proof paths
     await program.methods
-      .shield(new anchor.BN(dAmt.toString()), Array.from(toBE32(dComm)), Array.from(toBE32(newRoot)))
+      .shield(new anchor.BN(dAmt.toString()), Array.from(toBE32(dComm)))
       .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
         compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+      .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 })])
       .rpc();
     expect(await connection.getBalance(vaultPda) - vb).to.equal(5 * LAMPORTS_PER_SOL);
     console.log("    Shielded 5 SOL");
@@ -259,12 +260,12 @@ describe("milk (UTXO + Poseidon tree)", () => {
 
   it("rejects shield with zero amount", async () => {
     const comm = F.toObject(poseidon([BigInt(0), rand(), rand()]));
-    const root = treeInsert(comm);
     try {
       await program.methods
-        .shield(new anchor.BN(0), Array.from(toBE32(comm)), Array.from(toBE32(root)))
+        .shield(new anchor.BN(0), Array.from(toBE32(comm)))
         .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+        .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 })])
         .rpc();
       expect.fail("Should reject");
     } catch (e: any) {
@@ -276,29 +277,15 @@ describe("milk (UTXO + Poseidon tree)", () => {
   it("rejects shield with zero commitment", async () => {
     try {
       await program.methods
-        .shield(new anchor.BN(LAMPORTS_PER_SOL), Array.from(new Uint8Array(32)), Array.from(toBE32(rand())))
+        .shield(new anchor.BN(LAMPORTS_PER_SOL), Array.from(new Uint8Array(32)))
         .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
+        .preInstructions([ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 })])
         .rpc();
       expect.fail("Should reject");
     } catch (e: any) {
       expect(e.message).to.include("ZeroCommitment");
       console.log("    Zero commitment shield rejected");
-    }
-  });
-
-  it("rejects shield with zero root", async () => {
-    const comm = F.toObject(poseidon([BigInt(LAMPORTS_PER_SOL), rand(), rand()]));
-    try {
-      await program.methods
-        .shield(new anchor.BN(LAMPORTS_PER_SOL), Array.from(toBE32(comm)), Array.from(new Uint8Array(32)))
-        .accounts({ depositor: wallet.publicKey, splMerkleTree: splTree.publicKey,
-          compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID, logWrapper: SPL_NOOP_PROGRAM_ID })
-        .rpc();
-      expect.fail("Should reject");
-    } catch (e: any) {
-      expect(e.message).to.include("RootMismatch");
-      console.log("    Zero root shield rejected");
     }
   });
 

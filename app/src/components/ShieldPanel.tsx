@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, ComputeBudgetProgram } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { useProgram } from "../lib/useProgram";
 import {
@@ -39,20 +39,24 @@ export default function ShieldPanel() {
       const lamports = BigInt(Math.round(solAmount * LAMPORTS_PER_SOL));
       const deposit = await generateDeposit(lamports);
       const commitmentBytes = Array.from(toBE32(deposit.commitment));
-      const newRoot = await treeInsert(deposit.commitment);
-      const newRootBytes = Array.from(toBE32(newRoot));
       const bnAmount = new anchor.BN(lamports.toString());
 
       setStatus("sending");
       const tx = await program.methods
-        .shield(bnAmount, commitmentBytes, newRootBytes)
+        .shield(bnAmount, commitmentBytes)
         .accounts({
           depositor: publicKey,
           splMerkleTree: MERKLE_TREE,
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
           logWrapper: SPL_NOOP_PROGRAM_ID,
         })
+        .preInstructions([
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+        ])
         .rpc();
+
+      // Sync local tree after on-chain insertion succeeds
+      await treeInsert(deposit.commitment);
 
       setTxSig(tx);
       setNote(encodeNote(deposit.amount, deposit.nullifier, deposit.secret));
