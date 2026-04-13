@@ -69,13 +69,13 @@ export default function UnshieldPanel() {
     <div className="space-y-5">
       <div>
         <label className="block text-sm text-[var(--cream)] mb-2 font-semibold">
-          Secret Note
+          Recipient Note
         </label>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={3}
-          placeholder="Paste your secret note..."
+          placeholder="Paste the note someone sent you..."
           className="arcade-input font-mono text-xs"
         />
         {note.trim() && (
@@ -142,8 +142,8 @@ export default function UnshieldPanel() {
 
       {status !== "done" && (
         <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
-          <p>ZK proof generated in your browser.</p>
-          <p>No link between deposit and withdrawal.</p>
+          <p>Paste the note you received and withdraw SOL to any wallet.</p>
+          <p>ZK proof ensures no link between sender and receiver.</p>
         </div>
       )}
     </div>

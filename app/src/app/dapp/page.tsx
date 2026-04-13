@@ -20,7 +20,7 @@ type Tab = "shield" | "transfer" | "unshield";
 
 const TABS: { key: Tab; label: string; emoji: string }[] = [
   { key: "shield", label: "SHIELD", emoji: "+" },
-  { key: "transfer", label: "TRANSFER", emoji: ">" },
+  { key: "transfer", label: "SEND", emoji: ">" },
   { key: "unshield", label: "UNSHIELD", emoji: "-" },
 ];
 

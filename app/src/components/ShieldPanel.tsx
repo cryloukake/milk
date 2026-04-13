@@ -143,7 +143,7 @@ export default function ShieldPanel() {
               </button>
             </div>
             <p className="text-xs text-[var(--pink)] mt-2 font-body">
-              Save this note! It&apos;s your only way to access these funds.
+              Save this note! To send SOL to someone, go to the SEND tab and paste it there.
             </p>
           </div>
           {txSig && (

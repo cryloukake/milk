@@ -99,13 +99,13 @@ export default function TransferPanel() {
     <div className="space-y-5">
       <div>
         <label className="block text-sm text-[var(--cream)] mb-2 font-semibold">
-          Your Secret Note
+          Your Shield Note
         </label>
         <textarea
           value={inputNote}
           onChange={(e) => setInputNote(e.target.value)}
           rows={3}
-          placeholder="Paste your secret note..."
+          placeholder="Paste the note from your shield..."
           className="arcade-input font-mono text-xs"
         />
         {inputNote.trim() && (
@@ -154,7 +154,7 @@ export default function TransferPanel() {
           ? "CONFIRMING..."
           : !publicKey
           ? "CONNECT WALLET"
-          : "TRANSFER"}
+          : "SEND"}
       </button>
 
       {error && (
@@ -164,12 +164,12 @@ export default function TransferPanel() {
       {status === "done" && (
         <div className="space-y-4 animate-bounce-in">
           <div className="card-success text-[var(--gold)] text-sm font-semibold">
-            Transfer complete! No SOL moved on-chain.
+            Done! Send the note below to your recipient.
           </div>
 
           <div>
             <label className="block text-sm text-[var(--cream)] mb-1.5 font-semibold">
-              Recipient Note <span className="text-[var(--purple)] font-normal">(send this)</span>
+              Recipient Note <span className="text-[var(--purple)] font-normal">(send this to them — they paste it in UNSHIELD)</span>
             </label>
             <div className="relative">
               <textarea readOnly value={recipientNote} rows={3} className="note-display" />
@@ -200,15 +200,15 @@ export default function TransferPanel() {
             </a>
           )}
           <button onClick={reset} className="chip w-full mt-2">
-            NEW TRANSFER
+            SEND MORE
           </button>
         </div>
       )}
 
       {status !== "done" && (
         <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
-          <p>No SOL moves. Only commitments update.</p>
-          <p>ZK proof verifies balance in your browser.</p>
+          <p>Paste your shield note, choose how much to send.</p>
+          <p>You'll get a recipient note to share and a change note to keep.</p>
         </div>
       )}
     </div>
