@@ -129,6 +129,15 @@ function AppContent() {
             <p className="font-mono text-[10px] text-[#444]">
               v0.2.0 &middot; open source &middot; solana-native
             </p>
+            <button
+              onClick={() => {
+                localStorage.removeItem("milk_tree_state");
+                window.location.reload();
+              }}
+              className="text-[10px] text-[#444] hover:text-[var(--pink)] font-mono transition-colors cursor-pointer"
+            >
+              Reset local state
+            </button>
           </div>
 
         </div>{/* end 480px container */}
