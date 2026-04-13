@@ -26,10 +26,10 @@ function GridOverlay() {
   );
 }
 
-function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
   return (
     <div className="arcade-panel p-5" style={{ boxShadow: "6px 6px 0px #000" }}>
-      <div className="text-2xl mb-2">{emoji}</div>
+      <div className="font-arcade text-lg text-[var(--gold)] mb-2 opacity-70">{icon}</div>
       <h3 className="font-arcade text-sm text-[var(--gold)] mb-2">{title}</h3>
       <p className="text-sm text-[var(--text-dim)] font-body leading-relaxed">{desc}</p>
     </div>
@@ -143,32 +143,32 @@ export default function Landing() {
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <FeatureCard
-              emoji="🔒"
+              icon="[X]"
               title="NO POOLS"
               desc="Your tokens stay in your control. No shared liquidity pool, no locked funds, no pool risk."
             />
             <FeatureCard
-              emoji="🧠"
+              icon="{ZK}"
               title="CLIENT-SIDE ZK"
               desc="Groth16 proofs generated entirely in your browser. No middlemen, no trust assumptions."
             />
             <FeatureCard
-              emoji="💰"
+              icon="<*>"
               title="ANY AMOUNT"
               desc="Send any amount of SOL privately. No fixed denominations — UTXO model with change."
             />
             <FeatureCard
-              emoji="🌳"
+              icon="///"
               title="GROWING PRIVACY"
               desc="Anonymity set = entire commitment tree. Every user makes everyone more private."
             />
             <FeatureCard
-              emoji="⚡"
+              icon=">>>"
               title="SOLANA-NATIVE"
               desc="Built on SPL Account Compression and altbn254 syscalls. $0.01 per transaction."
             />
             <FeatureCard
-              emoji="📖"
+              icon="</>"
               title="OPEN SOURCE"
               desc="Fully auditable Circom circuits, Anchor program, and Next.js frontend. Trust the code."
             />
