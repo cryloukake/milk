@@ -108,9 +108,13 @@ export default function TransferPanel() {
           placeholder="Paste the note from your shield..."
           className="arcade-input font-mono text-xs"
         />
-        {inputNote.trim() && (
+        {inputNote.trim() ? (
           <p className={`text-xs mt-1.5 font-body ${decoded ? "text-[var(--gold)]" : "text-[var(--pink)]"}`}>
             {decoded ? `Balance: ${noteBalanceSol} SOL` : "Invalid note"}
+          </p>
+        ) : (
+          <p className="text-xs mt-1.5 font-body text-[var(--text-dim)]">
+            Don&apos;t have a note? Go to the SHIELD tab first to deposit SOL and get one.
           </p>
         )}
       </div>

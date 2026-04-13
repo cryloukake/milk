@@ -78,9 +78,13 @@ export default function UnshieldPanel() {
           placeholder="Paste the note someone sent you..."
           className="arcade-input font-mono text-xs"
         />
-        {note.trim() && (
+        {note.trim() ? (
           <p className={`text-xs mt-1.5 font-body ${decoded ? "text-[var(--gold)]" : "text-[var(--pink)]"}`}>
             {decoded ? `Withdrawable: ${noteBalanceSol} SOL` : "Invalid note"}
+          </p>
+        ) : (
+          <p className="text-xs mt-1.5 font-body text-[var(--text-dim)]">
+            Someone needs to SEND you a note first. Ask them to shield SOL and use the SEND tab.
           </p>
         )}
       </div>
