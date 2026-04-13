@@ -200,24 +200,53 @@ export default function Landing() {
               style={{ textShadow: "3px 3px 0px #000" }}>
               ARCHITECTURE
             </h2>
-            <div className="arcade-panel p-6 font-mono text-xs sm:text-sm text-[var(--text-dim)] leading-relaxed overflow-x-auto"
-              style={{ boxShadow: "8px 8px 0px #000" }}>
-              <pre className="text-[var(--gold)]">{`  Commitment = Poseidon(amount, nullifier, secret)
 
-  ┌──────────────┐     ┌─────────────────┐
-  │   Browser    │────▶│  Solana Program  │
-  │              │     │                  │
-  │ • Poseidon   │     │ • Poseidon Tree  │
-  │ • snarkjs    │     │ • Root History   │
-  │ • Groth16    │     │ • Nullifier PDAs │
-  │   proof gen  │     │ • SOL Vault      │
-  └──────────────┘     └─────────────────┘
-         │                     │
-         ▼                     ▼
-  ┌──────────────┐     ┌─────────────────┐
-  │  ZK Circuit  │     │  Groth16 Verify  │
-  │  (Circom)    │     │  (alt_bn128)     │
-  └──────────────┘     └─────────────────┘`}</pre>
+            {/* Commitment formula */}
+            <div className="text-center mb-10">
+              <div className="inline-block arcade-panel px-6 py-3" style={{ boxShadow: "4px 4px 0px #000" }}>
+                <span className="font-mono text-sm text-[var(--gold)]">
+                  Commitment = Poseidon(amount, nullifier, secret)
+                </span>
+              </div>
+            </div>
+
+            {/* Top row: Browser → Solana Program */}
+            <div className="grid sm:grid-cols-2 gap-6 mb-4">
+              <div className="arcade-panel p-5" style={{ boxShadow: "6px 6px 0px #000" }}>
+                <h4 className="font-arcade text-xs text-[var(--sky)] mb-3">BROWSER</h4>
+                <ul className="space-y-1.5 font-mono text-sm text-[var(--text-dim)]">
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> Poseidon hashing</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> snarkjs proof gen</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> Groth16 circuits</li>
+                </ul>
+              </div>
+              <div className="arcade-panel p-5" style={{ boxShadow: "6px 6px 0px #000" }}>
+                <h4 className="font-arcade text-xs text-[var(--sky)] mb-3">SOLANA PROGRAM</h4>
+                <ul className="space-y-1.5 font-mono text-sm text-[var(--text-dim)]">
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> Poseidon Merkle tree</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> Root history (30)</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> Nullifier PDAs</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gold)] text-xs">{">"}</span> SOL vault</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Arrow down */}
+            <div className="flex justify-around mb-4">
+              <div className="font-arcade text-[var(--gold)] text-lg opacity-50">V</div>
+              <div className="font-arcade text-[var(--gold)] text-lg opacity-50">V</div>
+            </div>
+
+            {/* Bottom row: ZK Circuit / Groth16 Verify */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div className="arcade-panel p-4 text-center" style={{ boxShadow: "6px 6px 0px #000" }}>
+                <h4 className="font-arcade text-xs text-[var(--purple)] mb-1">ZK CIRCUIT</h4>
+                <p className="font-mono text-xs text-[var(--text-dim)]">Circom 2.0</p>
+              </div>
+              <div className="arcade-panel p-4 text-center" style={{ boxShadow: "6px 6px 0px #000" }}>
+                <h4 className="font-arcade text-xs text-[var(--purple)] mb-1">GROTH16 VERIFY</h4>
+                <p className="font-mono text-xs text-[var(--text-dim)]">alt_bn128 syscall</p>
+              </div>
             </div>
           </div>
         </section>
