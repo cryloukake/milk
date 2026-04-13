@@ -127,9 +127,9 @@
     {
       "name": "shield",
       "docs": [
-        "Shield: client provides the new_root computed after inserting the commitment.",
-        "The program stores commitment + root without recomputing Poseidon on-chain",
-        "(too expensive: ~1.2M CU for 20 hashes). Root is verified at spend time."
+        "Shield: insert commitment into Poseidon tree on-chain.",
+        "Root is computed on-chain via 20 Poseidon hashes (~1.2M CU).",
+        "Requires compute budget of 1_400_000 CU."
       ],
       "discriminator": [
         220,
@@ -239,15 +239,6 @@
         },
         {
           "name": "commitment",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "new_root",
           "type": {
             "array": [
               "u8",
@@ -663,6 +654,16 @@
       "code": 6006,
       "name": "InvalidPublicInputs",
       "msg": "Invalid public inputs length"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroCommitment",
+      "msg": "Commitment cannot be zero"
+    },
+    {
+      "code": 6008,
+      "name": "AmountTooLarge",
+      "msg": "Amount exceeds maximum allowed"
     }
   ],
   "types": [
