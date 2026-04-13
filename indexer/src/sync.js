@@ -9,6 +9,9 @@ import { extractCommitments, bufferToBigInt } from "./parser.js";
 const PROGRAM_ID = new PublicKey("9Bxxr2GGWoZw1mbR3Cij8jnZUpcQBXcZKVTmfDVJ2Ewy");
 const CLUSTER_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
+// Skip all transactions at or before this signature (tree was reset here)
+const SKIP_BEFORE_SIG = process.env.SKIP_BEFORE_SIG || null;
+
 export class TreeSync {
   constructor(tree) {
     this.tree = tree;
@@ -56,6 +59,15 @@ export class TreeSync {
 
     // Filter to only successful transactions
     allSignatures = allSignatures.filter((s) => s.err === null);
+
+    // If a reset signature is set, skip everything at or before it
+    if (SKIP_BEFORE_SIG) {
+      const resetIdx = allSignatures.findIndex((s) => s.signature === SKIP_BEFORE_SIG);
+      if (resetIdx !== -1) {
+        console.log(`Skipping ${resetIdx + 1} transactions before tree reset.`);
+        allSignatures = allSignatures.slice(resetIdx + 1);
+      }
+    }
 
     console.log(`Found ${allSignatures.length} successful transactions.`);
 

@@ -71,6 +71,22 @@ pub mod milk {
         Ok(())
     }
 
+    /// Reset the Poseidon tree to fresh state. Authority-only.
+    /// Use this to wipe corrupted tree state after protocol upgrades.
+    pub fn reset_tree(ctx: Context<ResetTree>) -> Result<()> {
+        let mut tree = ctx.accounts.poseidon_tree.load_mut()?;
+        let bump = tree.bump;
+        tree.init(bump);
+
+        let config = &mut ctx.accounts.pool_config;
+        config.deposit_count = 0;
+        config.transfer_count = 0;
+        config.withdrawal_count = 0;
+
+        msg!("Tree reset to fresh state.");
+        Ok(())
+    }
+
     /// Shield: insert commitment into Poseidon tree on-chain.
     /// Root is computed on-chain via 20 Poseidon hashes (~1.2M CU).
     /// Requires compute budget of 1_400_000 CU.
@@ -272,6 +288,18 @@ pub struct Initialize<'info> {
     /// CHECK: SPL Noop.
     pub log_wrapper: Program<'info, Noop>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ResetTree<'info> {
+    #[account(mut, constraint = authority.key() == pool_config.authority @ MilkError::InvalidProof)]
+    pub authority: Signer<'info>,
+
+    #[account(mut, seeds = [b"pool_config"], bump = pool_config.bump)]
+    pub pool_config: Account<'info, PoolConfig>,
+
+    #[account(mut, seeds = [b"poseidon_tree"], bump)]
+    pub poseidon_tree: AccountLoader<'info, MerkleTreeState>,
 }
 
 #[derive(Accounts)]
