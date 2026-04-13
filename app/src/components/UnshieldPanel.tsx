@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import { useProgram } from "../lib/useProgram";
-import { decodeNote, generateUnshieldProof, toBE32 } from "../lib/crypto";
+import { decodeNote, generateUnshieldProof, toBE32, tryDecodeNote } from "../lib/crypto";
 
 type Status = "idle" | "proving" | "sending" | "done" | "error";
 
@@ -18,6 +18,18 @@ export default function UnshieldPanel() {
   const [error, setError] = useState("");
   const [txSig, setTxSig] = useState("");
   const [withdrawnAmount, setWithdrawnAmount] = useState("");
+
+  const decoded = useMemo(() => tryDecodeNote(note), [note]);
+  const noteBalanceSol = decoded ? Number(decoded.amount) / LAMPORTS_PER_SOL : null;
+
+  function reset() {
+    setNote("");
+    setRecipient("");
+    setStatus("idle");
+    setError("");
+    setTxSig("");
+    setWithdrawnAmount("");
+  }
 
   async function handleUnshield() {
     if (!program || !publicKey) return;
@@ -66,6 +78,11 @@ export default function UnshieldPanel() {
           placeholder="Paste your secret note..."
           className="arcade-input font-mono text-xs"
         />
+        {note.trim() && (
+          <p className={`text-xs mt-1.5 font-body ${decoded ? "text-[var(--gold)]" : "text-[var(--pink)]"}`}>
+            {decoded ? `Withdrawable: ${noteBalanceSol} SOL` : "Invalid note"}
+          </p>
+        )}
       </div>
 
       <div>
@@ -76,14 +93,17 @@ export default function UnshieldPanel() {
           type="text"
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
-          placeholder="Leave empty = your wallet"
+          placeholder={publicKey ? publicKey.toBase58().slice(0, 20) + "..." : "Connect wallet first"}
           className="arcade-input"
         />
+        <p className="text-xs text-[var(--text-dim)] mt-1.5 font-body">
+          Leave empty to withdraw to your connected wallet.
+        </p>
       </div>
 
       <button
         onClick={handleUnshield}
-        disabled={!publicKey || !note.trim() || status === "proving" || status === "sending"}
+        disabled={!publicKey || !decoded || status === "proving" || status === "sending"}
         className="btn-arcade"
       >
         {status === "proving"
@@ -92,6 +112,8 @@ export default function UnshieldPanel() {
           ? "CONFIRMING..."
           : !publicKey
           ? "CONNECT WALLET"
+          : decoded
+          ? `UNSHIELD ${noteBalanceSol} SOL`
           : "UNSHIELD SOL"}
       </button>
 
@@ -104,14 +126,26 @@ export default function UnshieldPanel() {
           <div className="card-success text-[var(--gold)] text-sm font-semibold">
             Unshielded {withdrawnAmount} SOL!
           </div>
-          <p className="text-[10px] text-[var(--text-dim)] font-mono break-all">TX: {txSig}</p>
+          <a
+            href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+            target="_blank"
+            rel="noopener"
+            className="block text-[10px] text-[var(--text-dim)] hover:text-[var(--sky)] font-mono break-all transition-colors"
+          >
+            TX: {txSig}
+          </a>
+          <button onClick={reset} className="chip w-full mt-2">
+            UNSHIELD MORE
+          </button>
         </div>
       )}
 
-      <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
-        <p>ZK proof generated in your browser.</p>
-        <p>No link between deposit and withdrawal.</p>
-      </div>
+      {status !== "done" && (
+        <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
+          <p>ZK proof generated in your browser.</p>
+          <p>No link between deposit and withdrawal.</p>
+        </div>
+      )}
     </div>
   );
 }

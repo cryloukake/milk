@@ -63,8 +63,21 @@ export function encodeNote(amount: bigint, nullifier: bigint, secret: bigint): s
 }
 
 export function decodeNote(note: string): { amount: bigint; nullifier: bigint; secret: bigint } {
-  const d = JSON.parse(atob(note.trim()));
-  return { amount: BigInt(d.a), nullifier: BigInt(d.n), secret: BigInt(d.s) };
+  try {
+    const d = JSON.parse(atob(note.trim()));
+    if (!d.a || !d.n || !d.s) throw new Error();
+    return { amount: BigInt(d.a), nullifier: BigInt(d.n), secret: BigInt(d.s) };
+  } catch {
+    throw new Error("Invalid note. Make sure you pasted the full note correctly.");
+  }
+}
+
+export function tryDecodeNote(note: string): { amount: bigint; nullifier: bigint; secret: bigint } | null {
+  try {
+    return decodeNote(note);
+  } catch {
+    return null;
+  }
 }
 
 // ---- Client-side Poseidon Merkle tree with localStorage persistence ----

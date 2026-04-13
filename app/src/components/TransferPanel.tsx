@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useProgram } from "../lib/useProgram";
@@ -9,7 +9,7 @@ import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
 } from "../lib/constants";
-import { decodeNote, encodeNote, generateTransferProof, toBE32, treeInsert } from "../lib/crypto";
+import { decodeNote, encodeNote, generateTransferProof, toBE32, treeInsert, tryDecodeNote } from "../lib/crypto";
 
 type Status = "idle" | "proving" | "sending" | "done" | "error";
 
@@ -23,6 +23,19 @@ export default function TransferPanel() {
   const [txSig, setTxSig] = useState("");
   const [recipientNote, setRecipientNote] = useState("");
   const [changeNote, setChangeNote] = useState("");
+
+  const decoded = useMemo(() => tryDecodeNote(inputNote), [inputNote]);
+  const noteBalanceSol = decoded ? Number(decoded.amount) / LAMPORTS_PER_SOL : null;
+
+  function reset() {
+    setInputNote("");
+    setSendAmount("");
+    setStatus("idle");
+    setError("");
+    setTxSig("");
+    setRecipientNote("");
+    setChangeNote("");
+  }
 
   async function handleTransfer() {
     if (!program || !publicKey) return;
@@ -94,21 +107,36 @@ export default function TransferPanel() {
           placeholder="Paste your secret note..."
           className="arcade-input font-mono text-xs"
         />
+        {inputNote.trim() && (
+          <p className={`text-xs mt-1.5 font-body ${decoded ? "text-[var(--gold)]" : "text-[var(--pink)]"}`}>
+            {decoded ? `Balance: ${noteBalanceSol} SOL` : "Invalid note"}
+          </p>
+        )}
       </div>
 
       <div>
         <label className="block text-sm text-[var(--cream)] mb-2 font-semibold">
           Amount to Send (SOL)
         </label>
-        <input
-          type="number"
-          step="0.001"
-          min="0"
-          value={sendAmount}
-          onChange={(e) => setSendAmount(e.target.value)}
-          placeholder="0.00"
-          className="arcade-input arcade-input-lg"
-        />
+        <div className="flex gap-2">
+          <input
+            type="number"
+            step="0.001"
+            min="0"
+            value={sendAmount}
+            onChange={(e) => setSendAmount(e.target.value)}
+            placeholder="0.00"
+            className="arcade-input arcade-input-lg flex-1"
+          />
+          {decoded && (
+            <button
+              onClick={() => setSendAmount((Number(decoded.amount) / LAMPORTS_PER_SOL).toString())}
+              className="chip !px-4 shrink-0"
+            >
+              MAX
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[var(--text-dim)] mt-1.5 font-body">
           Change returns as a new note.
         </p>
@@ -116,7 +144,7 @@ export default function TransferPanel() {
 
       <button
         onClick={handleTransfer}
-        disabled={!publicKey || !inputNote.trim() || !sendAmount || status === "proving" || status === "sending"}
+        disabled={!publicKey || !decoded || !sendAmount || status === "proving" || status === "sending"}
         className="btn-arcade"
       >
         {status === "proving"
@@ -161,15 +189,27 @@ export default function TransferPanel() {
           )}
 
           {txSig && (
-            <p className="text-[10px] text-[var(--text-dim)] font-mono break-all">TX: {txSig}</p>
+            <a
+              href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+              target="_blank"
+              rel="noopener"
+              className="block text-[10px] text-[var(--text-dim)] hover:text-[var(--sky)] font-mono break-all transition-colors"
+            >
+              TX: {txSig}
+            </a>
           )}
+          <button onClick={reset} className="chip w-full mt-2">
+            NEW TRANSFER
+          </button>
         </div>
       )}
 
-      <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
-        <p>No SOL moves. Only commitments update.</p>
-        <p>ZK proof verifies balance in your browser.</p>
-      </div>
+      {status !== "done" && (
+        <div className="text-xs text-[var(--text-dim)] font-body space-y-1 pt-1">
+          <p>No SOL moves. Only commitments update.</p>
+          <p>ZK proof verifies balance in your browser.</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,6 +23,14 @@ export default function ShieldPanel() {
   const [error, setError] = useState("");
   const [txSig, setTxSig] = useState("");
 
+  function reset() {
+    setAmount("");
+    setStatus("idle");
+    setNote("");
+    setError("");
+    setTxSig("");
+  }
+
   async function handleShield() {
     if (!program || !publicKey || !connection) return;
     const solAmount = parseFloat(amount);
@@ -85,7 +93,7 @@ export default function ShieldPanel() {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        {["0.1", "1", "5", "10"].map((v) => (
+        {["0.1", "0.2", "0.5", "1"].map((v) => (
           <button
             key={v}
             onClick={() => setAmount(v)}
@@ -139,10 +147,18 @@ export default function ShieldPanel() {
             </p>
           </div>
           {txSig && (
-            <p className="text-[10px] text-[var(--text-dim)] font-mono break-all">
+            <a
+              href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+              target="_blank"
+              rel="noopener"
+              className="block text-[10px] text-[var(--text-dim)] hover:text-[var(--sky)] font-mono break-all transition-colors"
+            >
               TX: {txSig}
-            </p>
+            </a>
           )}
+          <button onClick={reset} className="chip w-full mt-2">
+            SHIELD MORE
+          </button>
         </div>
       )}
     </div>
