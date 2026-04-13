@@ -60,7 +60,14 @@ export default function UnshieldPanel() {
       setWithdrawnAmount((Number(amount) / LAMPORTS_PER_SOL).toString());
       setStatus("done");
     } catch (err: any) {
-      setError(err.message || "Unshield failed");
+      const msg = err.message || "Unshield failed";
+      if (msg.includes("already in use") || msg.includes("0x0")) {
+        setError("This note has already been spent.");
+      } else if (msg.includes("already been processed")) {
+        setError("Transaction already submitted. Check your wallet — it may have succeeded.");
+      } else {
+        setError(msg);
+      }
       setStatus("error");
     }
   }

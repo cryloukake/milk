@@ -70,7 +70,12 @@ export default function ShieldPanel() {
       setNote(encodeNote(deposit.amount, deposit.nullifier, deposit.secret));
       setStatus("done");
     } catch (err: any) {
-      setError(err.message || "Shield failed");
+      const msg = err.message || "Shield failed";
+      if (msg.includes("already been processed")) {
+        setError("Transaction already submitted. Check your wallet — it may have succeeded.");
+      } else {
+        setError(msg);
+      }
       setStatus("error");
     }
   }

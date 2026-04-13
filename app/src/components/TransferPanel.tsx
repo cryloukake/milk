@@ -90,7 +90,14 @@ export default function TransferPanel() {
       }
       setStatus("done");
     } catch (err: any) {
-      setError(err.message || "Transfer failed");
+      const msg = err.message || "Send failed";
+      if (msg.includes("already in use") || msg.includes("0x0")) {
+        setError("This note has already been used.");
+      } else if (msg.includes("already been processed")) {
+        setError("Transaction already submitted. Check your wallet — it may have succeeded.");
+      } else {
+        setError(msg);
+      }
       setStatus("error");
     }
   }
