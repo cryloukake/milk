@@ -140,8 +140,6 @@ pub mod milk {
         nullifier_hash: [u8; 32],
         out_commitment_1: [u8; 32],
         out_commitment_2: [u8; 32],
-        new_root_after_out1: [u8; 32],
-        new_root_after_out2: [u8; 32],
     ) -> Result<()> {
         // Verify root
         {
@@ -157,15 +155,11 @@ pub mod milk {
 
         ctx.accounts.nullifier.nullifier = nullifier_hash;
 
-        // Store client-provided roots (Poseidon too expensive on-chain)
+        // Insert both output commitments on-chain (40 Poseidon hashes total)
         {
             let mut tree = ctx.accounts.poseidon_tree.load_mut()?;
-            let idx1 = (tree.current_root_index as usize + 1) % poseidon_tree::ROOT_HISTORY_SIZE;
-            tree.roots[idx1] = new_root_after_out1;
-            let idx2 = (idx1 + 1) % poseidon_tree::ROOT_HISTORY_SIZE;
-            tree.roots[idx2] = new_root_after_out2;
-            tree.current_root_index = idx2 as u32;
-            tree.next_index += 2;
+            tree.insert(out_commitment_1)?;
+            tree.insert(out_commitment_2)?;
         }
 
         // Also SPL tree
@@ -332,7 +326,6 @@ pub struct Shield<'info> {
 #[instruction(
     proof: Proof, root: [u8; 32], nullifier_hash: [u8; 32],
     out_commitment_1: [u8; 32], out_commitment_2: [u8; 32],
-    new_root_after_out1: [u8; 32], new_root_after_out2: [u8; 32],
 )]
 pub struct Transfer<'info> {
     #[account(mut)]

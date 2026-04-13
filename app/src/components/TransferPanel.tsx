@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, ComputeBudgetProgram } from "@solana/web3.js";
 import { useProgram } from "../lib/useProgram";
 import {
   MERKLE_TREE,
@@ -58,10 +58,6 @@ export default function TransferPanel() {
 
       setStatus("sending");
 
-      // Compute new roots after inserting each output
-      const rootAfterOut1 = await treeInsert(result.outCommitment1);
-      const rootAfterOut2 = await treeInsert(result.outCommitment2);
-
       const tx = await program.methods
         .transfer(
           result.proof,
@@ -69,8 +65,6 @@ export default function TransferPanel() {
           Array.from(toBE32(result.nullifierHash)),
           Array.from(toBE32(result.outCommitment1)),
           Array.from(toBE32(result.outCommitment2)),
-          Array.from(toBE32(rootAfterOut1)),
-          Array.from(toBE32(rootAfterOut2)),
         )
         .accounts({
           payer: publicKey,
@@ -78,7 +72,14 @@ export default function TransferPanel() {
           compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
           logWrapper: SPL_NOOP_PROGRAM_ID,
         })
+        .preInstructions([
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+        ])
         .rpc();
+
+      // Sync local tree after on-chain insertion succeeds
+      await treeInsert(result.outCommitment1);
+      await treeInsert(result.outCommitment2);
 
       setTxSig(tx);
       const d1 = result.outDeposit1;

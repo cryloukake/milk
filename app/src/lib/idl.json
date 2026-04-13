@@ -478,24 +478,6 @@
               32
             ]
           }
-        },
-        {
-          "name": "new_root_after_out1",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "new_root_after_out2",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
         }
       ]
     },

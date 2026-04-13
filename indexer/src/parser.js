@@ -3,9 +3,9 @@
  *
  * Instruction layouts (Anchor borsh serialization):
  *
- * Shield:   [8 disc][8 amount_u64][32 commitment][32 new_root]
+ * Shield:   [8 disc][8 amount_u64][32 commitment]
  * Transfer: [8 disc][64 proof.a][128 proof.b][64 proof.c][32 root][32 nullifier_hash]
- *           [32 out_commitment_1][32 out_commitment_2][32 new_root_1][32 new_root_2]
+ *           [32 out_commitment_1][32 out_commitment_2]
  * Unshield: no new commitments (consumes a leaf)
  */
 
