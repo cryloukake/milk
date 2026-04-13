@@ -75,6 +75,13 @@ function AppContent() {
             />
           </div>
 
+          {/* Devnet warning */}
+          <div className="mb-4 arcade-panel px-4 py-2.5 border-[var(--sky)] bg-[#0a1a2a]" style={{ boxShadow: "3px 3px 0px #000" }}>
+            <p className="text-[11px] text-[var(--sky)] font-body text-center">
+              You are on <span className="font-semibold">Solana Devnet</span>. Make sure your wallet is set to devnet or you won&apos;t see your funds.
+            </p>
+          </div>
+
           {/* Tagline */}
           <p className="text-[var(--text-dim)] text-xs sm:text-sm mb-6 sm:mb-8 text-center font-body">
             Privacy is a state transition, not a place.
